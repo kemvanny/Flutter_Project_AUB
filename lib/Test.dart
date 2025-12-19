@@ -11,7 +11,7 @@ class Test extends StatelessWidget {
       ),
       body: Column(
         children: [
-          Center(child: Text("Hello Guy!")),
+          Center(child: Text("Hello Guy!",style: TextStyle(color: Colors.purple),)),
         ],
       ),
     );
