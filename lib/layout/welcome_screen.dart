@@ -46,10 +46,10 @@ class WelcomeScreen extends StatelessWidget {
                   _dot(true),
                 ],
               ),
-
               const SizedBox(height: 30),
 
               /// App Name
+
               Text(
                 "PLANME",
                 style: TextStyle(
@@ -59,7 +59,6 @@ class WelcomeScreen extends StatelessWidget {
                   letterSpacing: 2,
                 ),
               ),
-
               const SizedBox(height: 14),
 
               /// Description
@@ -70,12 +69,11 @@ class WelcomeScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey.shade700,
+                    color: Color(0xff393844),
                     height: 1.6,
                   ),
                 ),
               ),
-
               const Spacer(),
 
               /// Get Start Button
@@ -87,12 +85,13 @@ class WelcomeScreen extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: () {
                       // TODO: Navigate to next screen
+                      Navigator.pushNamed(context, '/register');
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFB9B5F0),
                       elevation: 6,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                     ),
                     child: const Text(
