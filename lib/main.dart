@@ -1,14 +1,34 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_project_aub/auth/login_screen.dart';
 import 'package:flutter_project_aub/auth/register_screen.dart';
+import 'package:flutter_project_aub/firebase_options.dart';
 import 'package:flutter_project_aub/layout/welcome_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_core/firebase_core.dart';
+
 import 'layout/home_screen.dart';
+
+bool isFirebaseInitialized() {
+  try {
+    Firebase.app();
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  if (isFirebaseInitialized()) {
+    debugPrint("Firebase already initialized");
+  } else {
+    debugPrint("Firebase not initialized");
+  }
+
   runApp(const MyApp());
 }
 
