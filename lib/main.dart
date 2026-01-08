@@ -1,22 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_project_aub/bottomnavigation/homepage_sceen.dart';
+import 'package:flutter_project_aub/auth/login_screen.dart';
+import 'package:flutter_project_aub/auth/register_screen.dart';
 import 'package:flutter_project_aub/firebase_options.dart';
+import 'package:flutter_project_aub/layout/welcome_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
-<<<<<<< HEAD
-
-bool isFirebaseInitialized() {
-  try {
-    Firebase.app();
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-=======
 import 'layout/home_screen.dart';
->>>>>>> 28fbc038e59c1d6c0a1293dc29bd8d38bf5c6444
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,16 +30,6 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         textTheme: GoogleFonts.robotoTextTheme(),
       ),
-<<<<<<< HEAD
-      // initialRoute: '/welcome',
-      // routes: {
-      //   '/': (context) => const HomeScreen(),
-      //   '/welcome': (context) => const WelcomeScreen(),
-      //   '/register': (context) => const RegisterScreen(),
-      //   '/login': (context) => const LoginScreen(),
-      // },
-      home: HomepageSceen(),
-=======
       home: const AuthGate(),
       routes: {
         '/welcome': (context) => const WelcomeScreen(),
@@ -57,7 +37,6 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const RegisterScreen(),
         '/home': (context) => const HomeScreen(),
       },
->>>>>>> 28fbc038e59c1d6c0a1293dc29bd8d38bf5c6444
     );
   }
 }
@@ -86,4 +65,3 @@ class AuthGate extends StatelessWidget {
     );
   }
 }
-
