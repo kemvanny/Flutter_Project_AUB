@@ -12,20 +12,25 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+
   bool _obscurePassword = true;
   bool _isLoading = false;
 
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 8))..repeat(reverse: true);
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    )..repeat(reverse: true);
   }
 
   @override
@@ -36,50 +41,80 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     super.dispose();
   }
 
-  // ===== EMAIL/PASSWORD LOGIN =====
+  // ================= EMAIL LOGIN =================
   Future<void> _signInWithEmail() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      UserCredential userCredential =
+      // Attempt to sign in
+      final userCredential =
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
 
       final uid = userCredential.user?.uid;
-      if (uid != null) {
-        final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-        if (doc.exists && doc.data() != null) {
-          final data = doc.data()!;
-          final fullName = data['fullName'] ?? '';
-          final email = data['email'] ?? '';
-          // store user info locally or pass to HomeScreen
-        }
+      if (uid == null) throw FirebaseAuthException(code: 'no-uid');
+
+      // Check if Firestore user exists
+      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+      if (!doc.exists) {
+        // Auto-create Firestore record for this user
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'fullName': '',
+          'email': emailController.text.trim(),
+          'createdAt': FieldValue.serverTimestamp(),
+        });
       }
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/home');
+      Navigator.pushReplacementNamed(context, "/home");
+
+    } on FirebaseAuthException catch (e) {
+      debugPrint("AUTH ERROR CODE: ${e.code}");
+      debugPrint("AUTH ERROR MESSAGE: ${e.message}");
+
+      switch (e.code) {
+        case 'user-not-found':
+          _showError("No account found with this email. Maybe use Google Sign-In?");
+          break;
+        case 'wrong-password':
+          _showError("Incorrect password. Try resetting it if you forgot.");
+          break;
+        case 'invalid-email':
+          _showError("Invalid email address");
+          break;
+        case 'user-disabled':
+          _showError("This account has been disabled");
+          break;
+        case 'no-uid':
+          _showError("Login failed: missing UID");
+          break;
+        case 'account-exists-with-different-credential':
+          _showError("This email is linked with Google. Use Google Sign-In.");
+          break;
+        default:
+          _showError("Login failed: ${e.message}");
+      }
+
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
-      );
+      _showError("Something went wrong. Please try again.");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
 
-  // ===== GOOGLE LOGIN =====
+  // ================= GOOGLE LOGIN =================
   Future<void> _signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) return;
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final googleAuth = await googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
@@ -89,13 +124,75 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       await FirebaseAuth.instance.signInWithCredential(credential);
 
       if (!mounted) return;
-      Navigator.pushNamed(context, "/home");
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Google Sign-In failed"), backgroundColor: Colors.red),
-      );
+      Navigator.pushReplacementNamed(context, "/home");
+    } catch (_) {
+      _showError("Google Sign-In failed");
     }
+  }
+
+  // ================= FORGOT PASSWORD =================
+  Future<void> _forgotPassword() async {
+    final resetEmailController = TextEditingController(
+      text: emailController.text.trim(),
+    );
+
+    await showDialog(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text("Reset Password"),
+          content: TextField(
+            controller: resetEmailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              hintText: "Enter your email",
+              prefixIcon: Icon(Icons.email_outlined),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final email = resetEmailController.text.trim();
+                if (email.isEmpty) {
+                  _showError("Email cannot be empty");
+                  return;
+                }
+
+                try {
+                  await FirebaseAuth.instance
+                      .sendPasswordResetEmail(email: email);
+
+                  if (!mounted) return;
+                  Navigator.pop(context);
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Password reset email sent"),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } catch (_) {
+                  _showError("Failed to send reset email");
+                }
+              },
+              child: const Text("Send"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 
   @override
@@ -110,23 +207,28 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     );
   }
 
+  // ================= UI =================
   Widget _animatedBackground() {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (context, child) {
+      builder: (_, __) {
         return Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF1E1B4B), Color(0xFF7C7AED), Color(0xFFA5B4FC)],
+              colors: [
+                Color(0xFF1E1B4B),
+                Color(0xFF7C7AED),
+                Color(0xFFA5B4FC)
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
           child: Stack(
             children: [
-              _circle(120, 60 + 50 * sin(_controller.value * 2 * pi), 240, Colors.white.withOpacity(0.08)),
-              _circle(420 + 40 * cos(_controller.value * 2 * pi), 260, 300, Colors.white.withOpacity(0.06)),
-              _circle(200, -140 + 60 * sin(_controller.value * 2 * pi), 190, Colors.white.withOpacity(0.07)),
+              _circle(120, 60 + 50 * sin(_controller.value * 2 * pi), 240),
+              _circle(420 + 40 * cos(_controller.value * 2 * pi), 260, 300),
+              _circle(200, -140 + 60 * sin(_controller.value * 2 * pi), 190),
             ],
           ),
         );
@@ -134,11 +236,18 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _circle(double top, double left, double size, Color color) {
+  Widget _circle(double top, double left, double size) {
     return Positioned(
       top: top,
       left: left,
-      child: Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.07),
+          shape: BoxShape.circle,
+        ),
+      ),
     );
   }
 
@@ -147,18 +256,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       child: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: 1),
-            duration: const Duration(milliseconds: 900),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, child) {
-              return Opacity(
-                opacity: value,
-                child: Transform.translate(offset: Offset(0, 40 * (1 - value)), child: child),
-              );
-            },
-            child: _loginCard(),
-          ),
+          child: _loginCard(),
         ),
       ),
     );
@@ -174,48 +272,65 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.25),
             borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.white.withOpacity(0.35), width: 1.2),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 40, offset: const Offset(0, 18))],
+            border:
+            Border.all(color: Colors.white.withOpacity(0.35), width: 1.2),
           ),
           child: Form(
             key: _formKey,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 Image.asset('assets/images/logo.png', height: 100),
-                const SizedBox(height: 10),
-                Text("Welcome back", style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.9))),
                 const SizedBox(height: 30),
-                _input("Email", Icons.email_outlined, controller: emailController),
+
+                _input("Email", Icons.email_outlined,
+                    controller: emailController),
                 const SizedBox(height: 18),
-                _input("Password", Icons.lock_outline, isPassword: true, controller: passwordController),
-                const SizedBox(height: 32),
+
+                _input("Password", Icons.lock_outline,
+                    isPassword: true, controller: passwordController),
+
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _forgotPassword,
+                    child: const Text(
+                      "Forgot Password?",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
                 _loginButton(),
                 const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(child: Divider(color: Colors.white.withOpacity(0.5))),
-                    const Padding(padding: EdgeInsets.symmetric(horizontal: 8.0), child: Text("OR", style: TextStyle(color: Colors.white))),
-                    Expanded(child: Divider(color: Colors.white.withOpacity(0.5))),
-                  ],
-                ),
-                const SizedBox(height: 16),
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    GestureDetector(onTap: _signInWithGoogle, child: _socialButton('assets/images/google.png')),
+                    GestureDetector(
+                        onTap: _signInWithGoogle,
+                        child: _socialButton(
+                            'assets/images/google.png')),
                     const SizedBox(width: 20),
-                    GestureDetector(child: _socialButton('assets/images/facebook.png')),
+                    _socialButton('assets/images/facebook.png'),
                   ],
                 ),
+
                 const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text("Don't have an account? ", style: TextStyle(color: Colors.white.withOpacity(0.8))),
+                    const Text("Don't have an account? ",
+                        style: TextStyle(color: Colors.white)),
                     GestureDetector(
-                      onTap: () => Navigator.pushNamed(context, '/register'),
-                      child: const Text("Sign Up", style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold)),
+                      onTap: () =>
+                          Navigator.pushNamed(context, "/register"),
+                      child: const Text(
+                        "Sign Up",
+                        style: TextStyle(
+                            color: Color(0xFF6366F1),
+                            fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ],
                 ),
@@ -227,14 +342,21 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _input(String hint, IconData icon, {bool isPassword = false, TextEditingController? controller}) {
+  Widget _input(String hint, IconData icon,
+      {bool isPassword = false, TextEditingController? controller}) {
     return TextFormField(
       controller: controller,
       obscureText: isPassword ? _obscurePassword : false,
       validator: (value) {
-        if (value == null || value.isEmpty) return "$hint cannot be empty";
-        if (hint == "Email" && !RegExp(r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$').hasMatch(value)) return "Enter a valid email";
-        if (hint == "Password" && value.length < 6) return "Password must be at least 6 characters";
+        if (value == null || value.isEmpty) return "$hint is required";
+        if (hint == "Email" &&
+            !RegExp(r'^[\w-]+@([\w-]+\.)+[a-zA-Z]{2,7}$')
+                .hasMatch(value)) {
+          return "Invalid email";
+        }
+        if (hint == "Password" && value.length < 6) {
+          return "Minimum 6 characters";
+        }
         return null;
       },
       decoration: InputDecoration(
@@ -242,15 +364,20 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         prefixIcon: Icon(icon, color: Colors.white),
         suffixIcon: isPassword
             ? IconButton(
-          icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.white),
-          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+          icon: Icon(
+              _obscurePassword
+                  ? Icons.visibility_off
+                  : Icons.visibility,
+              color: Colors.white),
+          onPressed: () =>
+              setState(() => _obscurePassword = !_obscurePassword),
         )
             : null,
         filled: true,
         fillColor: Colors.white.withOpacity(0.25),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide(color: Colors.white.withOpacity(0.35))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: const BorderSide(color: Color(0xFF6366F1), width: 1.8)),
-        contentPadding: const EdgeInsets.symmetric(vertical: 18),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20),
+            borderSide: BorderSide.none),
       ),
     );
   }
@@ -261,19 +388,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       height: 56,
       child: ElevatedButton(
         onPressed: _isLoading ? null : _signInWithEmail,
-        style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
         child: _isLoading
             ? const CircularProgressIndicator(color: Colors.white)
-            : const Text("Sign In", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            : const Text("Sign In"),
       ),
     );
   }
 
-  Widget _socialButton(String assetPath) {
+  Widget _socialButton(String asset) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-      child: Image.asset(assetPath, height: 28, width: 28),
+      decoration: BoxDecoration(
+          color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      child: Image.asset(asset, height: 28),
     );
   }
 }
