@@ -1,12 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_project_aub/auth/login_screen.dart';
-import 'package:flutter_project_aub/auth/register_screen.dart';
+import 'package:flutter_project_aub/bottomnavigation/homepage_sceen.dart';
 import 'package:flutter_project_aub/firebase_options.dart';
-import 'package:flutter_project_aub/layout/welcome_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-import 'layout/home_screen.dart';
 
 bool isFirebaseInitialized() {
   try {
@@ -44,13 +40,14 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         textTheme: GoogleFonts.robotoTextTheme(),
       ),
-      initialRoute: '/welcome',
-      routes: {
-        '/': (context) => const HomeScreen(),
-        '/welcome': (context) => const WelcomeScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/login': (context) => const LoginScreen(),
-      },
+      // initialRoute: '/welcome',
+      // routes: {
+      //   '/': (context) => const HomeScreen(),
+      //   '/welcome': (context) => const WelcomeScreen(),
+      //   '/register': (context) => const RegisterScreen(),
+      //   '/login': (context) => const LoginScreen(),
+      // },
+      home: HomepageSceen(),
     );
   }
 }
