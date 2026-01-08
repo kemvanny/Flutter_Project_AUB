@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -11,9 +13,23 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen>
     with SingleTickerProviderStateMixin {
+
   late AnimationController _controller;
+
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
+  bool _isLoading = false;
+
+  final _formKey = GlobalKey<FormState>();
+
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+  TextEditingController();
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
@@ -27,9 +43,76 @@ class _RegisterScreenState extends State<RegisterScreen>
   @override
   void dispose() {
     _controller.dispose();
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
     super.dispose();
   }
 
+  Future<void> _register() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      UserCredential userCredential =
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      final uid = userCredential.user!.uid;
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .set({
+        'uid': uid,
+        'name': nameController.text.trim(),
+        'email': emailController.text.trim(),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registration successful')),
+        );
+      });
+
+      Navigator.pushReplacementNamed(context, '/login');
+
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Auth error')),
+      );
+
+    } on FirebaseException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Firestore error')),
+      );
+
+    } catch (e, stack) {
+      debugPrint("FLUTTER ERROR: $e");
+      debugPrintStack(stackTrace: stack);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+
+
+  // ================= UI =================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -42,11 +125,10 @@ class _RegisterScreenState extends State<RegisterScreen>
     );
   }
 
-  // Animated Background
   Widget _animatedBackground() {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (context, child) {
+      builder: (_, __) {
         return Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -61,24 +143,9 @@ class _RegisterScreenState extends State<RegisterScreen>
           ),
           child: Stack(
             children: [
-              _circle(
-                120,
-                80 + 40 * sin(_controller.value * 2 * pi),
-                230,
-                Colors.white.withOpacity(0.08),
-              ),
-              _circle(
-                420 + 50 * cos(_controller.value * 2 * pi),
-                260,
-                300,
-                Colors.white.withOpacity(0.06),
-              ),
-              _circle(
-                220,
-                -140 + 60 * sin(_controller.value * 2 * pi),
-                190,
-                Colors.white.withOpacity(0.07),
-              ),
+              _circle(120, 80 + 40 * sin(_controller.value * 2 * pi), 230),
+              _circle(420 + 50 * cos(_controller.value * 2 * pi), 260, 300),
+              _circle(220, -140 + 60 * sin(_controller.value * 2 * pi), 190),
             ],
           ),
         );
@@ -86,7 +153,7 @@ class _RegisterScreenState extends State<RegisterScreen>
     );
   }
 
-  Widget _circle(double top, double left, double size, Color color) {
+  Widget _circle(double top, double left, double size) {
     return Positioned(
       top: top,
       left: left,
@@ -95,33 +162,18 @@ class _RegisterScreenState extends State<RegisterScreen>
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: color,
+          color: Colors.white.withOpacity(0.07),
         ),
       ),
     );
   }
 
-  // 🧾 Content
   Widget _content() {
     return SafeArea(
       child: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: 1),
-            duration: const Duration(milliseconds: 900),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, child) {
-              return Opacity(
-                opacity: value,
-                child: Transform.translate(
-                  offset: Offset(0, 40 * (1 - value)),
-                  child: child,
-                ),
-              );
-            },
-            child: _registerCard(),
-          ),
+          child: _registerCard(),
         ),
       ),
     );
@@ -135,162 +187,104 @@ class _RegisterScreenState extends State<RegisterScreen>
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.25), // glass
+            color: Colors.white.withOpacity(0.25),
             borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.35),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.12),
-                blurRadius: 40,
-                offset: const Offset(0, 18),
-              ),
-            ],
+            border: Border.all(color: Colors.white.withOpacity(0.35)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset(
-                'assets/images/logo.png',
-                height: 100,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                "Create your account",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white.withOpacity(0.9),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 30),
-
-              _input("Full Name", Icons.person_outline),
-              const SizedBox(height: 18),
-              _input("Email", Icons.email_outlined),
-              const SizedBox(height: 18),
-              _input(
-                "Password",
-                Icons.lock_outline,
-                isPassword: true,
-                isConfirm: false,
-              ),
-              const SizedBox(height: 18),
-              _input(
-                "Confirm Password",
-                Icons.lock_reset_outlined,
-                isPassword: true,
-                isConfirm: true,
-              ),
-              const SizedBox(height: 32),
-
-              _registerButton(),
-            ],
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                Image.asset('assets/images/logo.png', height: 90),
+                const SizedBox(height: 20),
+                _input("Full Name", Icons.person, nameController),
+                const SizedBox(height: 16),
+                _input("Email", Icons.email, emailController),
+                const SizedBox(height: 16),
+                _input("Password", Icons.lock, passwordController,
+                    isPassword: true),
+                const SizedBox(height: 16),
+                _input("Confirm Password", Icons.lock_outline,
+                    confirmPasswordController,
+                    isPassword: true, isConfirm: true),
+                const SizedBox(height: 30),
+                _registerButton(),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-
-  // Modern Input
   Widget _input(
       String hint,
-      IconData icon, {
+      IconData icon,
+      TextEditingController controller, {
         bool isPassword = false,
         bool isConfirm = false,
       }) {
-    return TextField(
+    return TextFormField(
+      controller: controller,
       obscureText: isPassword
           ? (isConfirm ? _obscureConfirm : _obscurePassword)
           : false,
+      validator: (value) {
+        if (value == null || value.isEmpty) return '$hint is required';
+        if (hint == "Email" &&
+            !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                .hasMatch(value)) {
+          return 'Invalid email';
+        }
+        if (hint == "Password" && value.length < 6) {
+          return 'Password must be 6+ characters';
+        }
+        if (hint == "Confirm Password" &&
+            value != passwordController.text) {
+          return 'Passwords do not match';
+        }
+        return null;
+      },
       decoration: InputDecoration(
         hintText: hint,
-        prefixIcon: Icon(icon, color: Colors.grey.shade600),
+        prefixIcon: Icon(icon),
         suffixIcon: isPassword
             ? IconButton(
-          icon: Icon(
-            isConfirm
-                ? (_obscureConfirm
-                ? Icons.visibility_off
-                : Icons.visibility)
-                : (_obscurePassword
-                ? Icons.visibility_off
-                : Icons.visibility),
-            color: Colors.grey.shade600,
-          ),
+          icon: Icon(isConfirm
+              ? (_obscureConfirm
+              ? Icons.visibility_off
+              : Icons.visibility)
+              : (_obscurePassword
+              ? Icons.visibility_off
+              : Icons.visibility)),
           onPressed: () {
             setState(() {
-              if (isConfirm) {
-                _obscureConfirm = !_obscureConfirm;
-              } else {
-                _obscurePassword = !_obscurePassword;
-              }
+              isConfirm
+                  ? _obscureConfirm = !_obscureConfirm
+                  : _obscurePassword = !_obscurePassword;
             });
           },
         )
             : null,
         filled: true,
-        fillColor: Colors.white.withOpacity(0.85),
-        contentPadding: const EdgeInsets.symmetric(vertical: 18),
-        enabledBorder: OutlineInputBorder(
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide(
-            color: Colors.grey.shade300,
-            width: 1.4,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(
-            color: Color(0xFF6366F1),
-            width: 1.8,
-          ),
         ),
       ),
     );
   }
 
-  //Register Button
   Widget _registerButton() {
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: () {
-          Navigator.pop(context);
-        },
-        style: ElevatedButton.styleFrom(
-          padding: EdgeInsets.zero,
-          elevation: 8,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-        ),
-        child: Ink(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [
-                Color(0xFF6366F1),
-                Color(0xFF8B5CF6),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Center(
-            child: Text(
-              "Sign Up",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
-      ),
+        onPressed: _isLoading ? null : _register,
+        child: _isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const Text("Sign Up"),
+      )
     );
   }
 }

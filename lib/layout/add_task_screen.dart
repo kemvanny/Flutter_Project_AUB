@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_project_aub/models/task_model.dart';
 import '../services/task_service.dart';
 
 class AddTaskScreen extends StatefulWidget {
@@ -35,7 +36,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                 if (_titleController.text.isEmpty || _categoryController.text.isEmpty) return;
 
                 await _taskService.addTask(
-                  _titleController.text,
+                  _titleController.text as Task,
                   _categoryController.text,
                 );
 
