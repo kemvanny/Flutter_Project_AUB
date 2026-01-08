@@ -1,33 +1,59 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/task_model.dart';
-import '../models/task_model.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:uuid/uuid.dart';
 
 class TaskService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final String _userId = FirebaseAuth.instance.currentUser?.uid ?? 'testUser';
-  final Uuid _uuid = Uuid();
-  late final taskId = _uuid.v4();
+  final CollectionReference _tasksCollection =
+  FirebaseFirestore.instance.collection('tasks');
 
-  CollectionReference get _taskCollection =>
-      _firestore.collection('users').doc(_userId).collection('tasks');
-
+  /// Get all tasks as a Stream of List<Task>
   Stream<List<Task>> getTasks() {
-    return _taskCollection.snapshots().map((snapshot) =>
-        snapshot.docs.map((doc) => Task.fromMap(doc.id, doc.data() as Map<String, dynamic>)).toList());
+    return _tasksCollection.snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>? ?? {};
+
+        return Task(
+          id: doc.id,
+          title: data['title'] ?? '',
+          category: data['category'] ?? '',
+          isDone: data['isDone'] ?? false,
+        );
+      }).toList();
+    });
   }
 
-  Future<void> addTask(String title, String category) async {
-    final taskId = _uuid.v4();
-    await _taskCollection.doc(taskId).set(Task(id: taskId, title: title, category: category).toMap());
+  /// Add a new task
+  Future<void> addTask(Task task, String text) async {
+    try {
+      await _tasksCollection.add({
+        'title': task.title,
+        'category': task.category,
+        'isDone': task.isDone,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw Exception('Failed to add task: $e');
+    }
   }
 
+  /// Update an existing task
   Future<void> updateTask(Task task) async {
-    await _taskCollection.doc(task.id).update(task.toMap());
+    try {
+      await _tasksCollection.doc(task.id).update({
+        'title': task.title,
+        'category': task.category,
+        'isDone': task.isDone,
+      });
+    } catch (e) {
+      throw Exception('Failed to update task: $e');
+    }
   }
 
-  Future<void> deleteTask(String id) async {
-    await _taskCollection.doc(id).delete();
+  /// Delete a task
+  Future<void> deleteTask(String taskId) async {
+    try {
+      await _tasksCollection.doc(taskId).delete();
+    } catch (e) {
+      throw Exception('Failed to delete task: $e');
+    }
   }
 }
