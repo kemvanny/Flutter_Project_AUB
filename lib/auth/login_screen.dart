@@ -41,14 +41,12 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
-  // ================= EMAIL LOGIN =================
   Future<void> _signInWithEmail() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      // Attempt to sign in
       final userCredential =
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
@@ -58,11 +56,9 @@ class _LoginScreenState extends State<LoginScreen>
       final uid = userCredential.user?.uid;
       if (uid == null) throw FirebaseAuthException(code: 'no-uid');
 
-      // Check if Firestore user exists
       final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
       if (!doc.exists) {
-        // Auto-create Firestore record for this user
         await FirebaseFirestore.instance.collection('users').doc(uid).set({
           'fullName': '',
           'email': emailController.text.trim(),
@@ -71,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen>
       }
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, "/home");
+      Navigator.pushReplacementNamed(context, "/complete-profile");
 
     } on FirebaseAuthException catch (e) {
       debugPrint("AUTH ERROR CODE: ${e.code}");
@@ -97,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen>
           _showError("This email is linked with Google. Use Google Sign-In.");
           break;
         default:
-          _showError("Login failed: ${e.message}");
+          _showError("Login failed: Incorrect Email or Password!!!");
       }
 
     } catch (e) {
@@ -107,8 +103,6 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-
-  // ================= GOOGLE LOGIN =================
   Future<void> _signInWithGoogle() async {
     try {
       final googleUser = await GoogleSignIn().signIn();
@@ -124,13 +118,12 @@ class _LoginScreenState extends State<LoginScreen>
       await FirebaseAuth.instance.signInWithCredential(credential);
 
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, "/home");
+      Navigator.pushReplacementNamed(context, "/complete-profile");
     } catch (_) {
       _showError("Google Sign-In failed");
     }
   }
 
-  // ================= FORGOT PASSWORD =================
   Future<void> _forgotPassword() async {
     final resetEmailController = TextEditingController(
       text: emailController.text.trim(),
@@ -207,7 +200,6 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  // ================= UI =================
   Widget _animatedBackground() {
     return AnimatedBuilder(
       animation: _controller,

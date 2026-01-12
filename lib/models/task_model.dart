@@ -1,30 +1,38 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Task {
   String id;
   String title;
   String category;
+  String priority;
   bool isDone;
+  DateTime dueDate;
+  String userId;
 
   Task({
     required this.id,
     required this.title,
     required this.category,
-    this.isDone = false,
+    required this.priority,
+    required this.isDone,
+    required this.dueDate,
+    required this.userId,
   });
 
-  Map<String, dynamic> toMap() {
-    return {
-      'title': title,
-      'category': category,
-      'isDone': isDone,
-    };
-  }
+  factory Task.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
 
-  factory Task.fromMap(String id, Map<String, dynamic> map) {
     return Task(
-      id: id,
-      title: map['title'] ?? '',
-      category: map['category'] ?? '',
-      isDone: map['isDone'] ?? false,
+      id: doc.id,
+      title: data['title'],
+      category: data['category'],
+      priority: data['priority'],
+      isDone: data['isDone'],
+      dueDate: (data['dueDate'] as Timestamp).toDate(),
+      userId: data['userId'],
     );
   }
 }
+
