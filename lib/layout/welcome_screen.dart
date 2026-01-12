@@ -1,8 +1,17 @@
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_project_aub/constants/app_image.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  int sliderIndex = 0;
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -27,25 +36,25 @@ class WelcomeScreen extends StatelessWidget {
               const SizedBox(height: 30),
 
               /// Illustration
-              SizedBox(
-                height: size.height * 0.45,
-                child: Image.asset(
-                  "assets/images/img_logo.png",
-                  fit: BoxFit.contain,
-                ),
-              ),
-
+              // SizedBox(
+              //   height: size.height * 0.45,
+              //   child: Image.asset(
+              //     "assets/images/img_logo.png",
+              //     fit: BoxFit.contain,
+              //   ),
+              // ),
+              _buildSlider(context),
               const SizedBox(height: 20),
 
               /// Page Indicator
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _dot(false),
-                  _dot(false),
-                  _dot(true),
-                ],
-              ),
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.center,
+              //   children: [
+              //     _dot(false),
+              //     _dot(false),
+              //     _dot(true),
+              //   ],
+              // ),
               const SizedBox(height: 30),
 
               /// App Name
@@ -111,16 +120,65 @@ class WelcomeScreen extends StatelessWidget {
   }
 
   /// Indicator Dot
-  Widget _dot(bool isActive) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.symmetric(horizontal: 6),
-      width: isActive ? 10 : 8,
-      height: isActive ? 10 : 8,
-      decoration: BoxDecoration(
-        color: isActive ? Colors.indigo : Colors.grey.shade400,
-        shape: BoxShape.circle,
-      ),
+  // Widget _dot(bool isActive) {
+  //   return AnimatedContainer(
+  //     duration: const Duration(milliseconds: 300),
+  //     margin: const EdgeInsets.symmetric(horizontal: 6),
+  //     width: isActive ? 10 : 8,
+  //     height: isActive ? 10 : 8,
+  //     decoration: BoxDecoration(
+  //       color: isActive ? Colors.indigo : Colors.grey.shade400,
+  //       shape: BoxShape.circle,
+  //     ),
+  //   );
+  // }
+
+  //Slider show
+  Widget _buildSlider(BuildContext context) {
+    final height = MediaQuery.of(context).size.height;
+
+    return Column(
+      children: [
+        CarouselSlider(
+          options: CarouselOptions(
+            height: height * 0.40, // 🔥 FULL HEIGHT CONTROL
+            viewportFraction: 0.99,
+            autoPlay: true,
+            autoPlayInterval: const Duration(seconds: 3),
+            onPageChanged: (index, reason) {
+              setState(() {
+                sliderIndex = index;
+              });
+            },
+          ),
+          items: [
+            AppImage.slider1,
+            AppImage.slider2,
+            AppImage.slider3,
+          ].map((img) {
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.asset(
+                img,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 15),
+        AnimatedSmoothIndicator(
+          activeIndex: sliderIndex,
+          count: 3,
+          effect: const JumpingDotEffect(
+            dotWidth: 10,
+            dotHeight: 10,
+            activeDotColor: Color(0xFF7C7AED),
+            dotColor: Colors.grey,
+          ),
+        ),
+      ],
     );
   }
 }
