@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_project_aub/layout/calendar_screen.dart';
 import 'package:flutter_project_aub/layout/setting_screen.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -26,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   int _currentIndex = 0;
   TaskFilter _filter = TaskFilter.all;
+  String? selectedTaskId;
 
   @override
   Widget build(BuildContext context) {
@@ -37,13 +39,13 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: _buildBottomNav(),
       floatingActionButton: _currentIndex <= 1
           ? FloatingButton(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddTaskScreen()),
-          );
-        },
-      )
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AddTaskScreen()),
+                );
+              },
+            )
           : null,
       extendBody: true, // makes bottom nav float above content
     );
@@ -76,116 +78,124 @@ class _HomeScreenState extends State<HomeScreen> {
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.menu, color: Colors.white, size: 25),
+                      icon:
+                          const Icon(Icons.menu, color: Colors.white, size: 25),
                       onPressed: () => Scaffold.of(context).openDrawer(),
                     ),
                   ),
                 ),
-                SizedBox(width: 20,),
+                SizedBox(
+                  width: 20,
+                ),
                 // Title / Profile
                 Expanded(
                   child: _currentIndex == 0
                       ? _buildProfileHeader() // your profile widget
                       : Center(
-                    child: Text(
-                      _currentIndex == 1
-                          ? "Tasks"
-                          : _currentIndex == 2
-                          ? "Calendar"
-                          : "Settings",
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                          child: Text(
+                            _currentIndex == 1
+                                ? "Tasks"
+                                : _currentIndex == 2
+                                    ? "Calendar"
+                                    : "Settings",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                 ),
 
                 // Notification icon with circle background
                 Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.notifications_none,
-                      color: Colors.white,
-                      size: 25,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
                     ),
-                    onPressed: () {
-                      // Show modal bottom sheet
-                      showModalBottomSheet(
-                        context: context,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(20),
-                          ),
-                        ),
-                        backgroundColor: Colors.white,
-                        isScrollControlled: true,
-                        builder: (context) {
-                          return SizedBox(
-                            height: MediaQuery.of(context).size.height * 0.6,
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                children: [
-                                  Container(
-                                    width: 40,
-                                    height: 4,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[300],
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  const Text(
-                                    "Notifications",
-                                    style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black87),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Expanded(
-                                    child: ListView(
-                                      children: [
-                                        // Example notification items
-                                        ListTile(
-                                          leading: const Icon(Icons.task),
-                                          title: const Text("Task 'Buy Groceries' is due soon"),
-                                          subtitle: const Text("Today, 5:00 PM"),
-                                          trailing: const Icon(Icons.chevron_right),
-                                          onTap: () {
-                                            // Optional: handle tap on notification
-                                            Navigator.pop(context); // close modal
-                                          },
-                                        ),
-                                        ListTile(
-                                          leading: const Icon(Icons.task),
-                                          title:
-                                          const Text("Task 'Submit Report' is due tomorrow"),
-                                          subtitle: const Text("Tomorrow, 9:00 AM"),
-                                          trailing: const Icon(Icons.chevron_right),
-                                          onTap: () {
-                                            Navigator.pop(context);
-                                          },
-                                        ),
-                                        // Add more notifications dynamically from Firestore later
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.notifications_none,
+                        color: Colors.white,
+                        size: 25,
+                      ),
+                      onPressed: () {
+                        // Show modal bottom sheet
+                        showModalBottomSheet(
+                          context: context,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(20),
                             ),
-                          );
-                        },
-                      );
-                    },
-                  )
-                ),
+                          ),
+                          backgroundColor: Colors.white,
+                          isScrollControlled: true,
+                          builder: (context) {
+                            return SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.6,
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      width: 40,
+                                      height: 4,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[300],
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    const Text(
+                                      "Notifications",
+                                      style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black87),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Expanded(
+                                      child: ListView(
+                                        children: [
+                                          // Example notification items
+                                          ListTile(
+                                            leading: const Icon(Icons.task),
+                                            title: const Text(
+                                                "Task 'Buy Groceries' is due soon"),
+                                            subtitle:
+                                                const Text("Today, 5:00 PM"),
+                                            trailing:
+                                                const Icon(Icons.chevron_right),
+                                            onTap: () {
+                                              // Optional: handle tap on notification
+                                              Navigator.pop(
+                                                  context); // close modal
+                                            },
+                                          ),
+                                          ListTile(
+                                            leading: const Icon(Icons.task),
+                                            title: const Text(
+                                                "Task 'Submit Report' is due tomorrow"),
+                                            subtitle:
+                                                const Text("Tomorrow, 9:00 AM"),
+                                            trailing:
+                                                const Icon(Icons.chevron_right),
+                                            onTap: () {
+                                              Navigator.pop(context);
+                                            },
+                                          ),
+                                          // Add more notifications dynamically from Firestore later
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    )),
               ],
             ),
           ),
@@ -194,11 +204,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
   // ================= PROFILE HEADER =================
   Widget _buildProfileHeader() {
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+      stream:
+          FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Row(
@@ -217,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final data = snapshot.data?.data() as Map<String, dynamic>? ?? {};
         final name = data['fullName'] ?? 'User';
         final image = data['profileUrl'] ?? '';
-        final gender = data['gender'] ?? null; // male/female/null
+        final gender = data['gender']; // male/female/null
 
         return Row(
           children: [
@@ -227,10 +237,11 @@ class _HomeScreenState extends State<HomeScreen> {
               backgroundImage: image.isNotEmpty
                   ? NetworkImage(image)
                   : (gender == 'male'
-                  ? const AssetImage('assets/images/default_profile.png')
-                  : gender == 'female'
-                  ? const AssetImage('assets/images/default_pf_girl.png')
-                  : null) as ImageProvider?,
+                      ? const AssetImage('assets/images/default_profile.png')
+                      : gender == 'female'
+                          ? const AssetImage(
+                              'assets/images/default_pf_girl.png')
+                          : null) as ImageProvider?,
               child: image.isEmpty && gender == null
                   ? const Icon(Icons.person, size: 20, color: Colors.white)
                   : null,
@@ -262,7 +273,6 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
-
 
   // ================= BODY =================
   Widget _buildBody() {
@@ -314,41 +324,299 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 12),
                     _buildFilterTabs(),
                     const SizedBox(height: 12),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: filteredTasks.length,
-                        itemBuilder: (context, index) {
-                          final task = filteredTasks[index];
-                          return Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: ListTile(
-                              leading: Checkbox(
-                                value: task.isDone,
-                                onChanged: (v) {
-                                  task.isDone = v!;
-                                  _taskService.updateTask(task);
-                                },
-                              ),
-                              title: Text(task.title),
-                              subtitle: Text(
-                                  "Due: ${DateFormat.MMMd().format(task.dueDate)}"),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete),
-                                onPressed: () => _taskService.deleteTask(task.id),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                    _carditem(filteredTasks),
                   ],
                 );
               },
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showUpdateTaskBottomSheet(Task task) {
+    final titleController = TextEditingController(text: task.title);
+    String priority = task.priority; // Add priority edit if needed
+    DateTime dueDate = task.dueDate;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (_) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle
+              Container(
+                width: 50,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Title
+              const Text(
+                "Update Task",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Task Title Input
+              TextField(
+                controller: titleController,
+                style: const TextStyle(fontSize: 16),
+                decoration: InputDecoration(
+                  labelText: "Task Title",
+                  prefixIcon:
+                      const Icon(Icons.task_alt, color: Color(0xFF7C3AED)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Priority Dropdown
+              DropdownButtonFormField<String>(
+                initialValue: priority,
+                items: ["Low", "Medium", "High"]
+                    .map((p) => DropdownMenuItem(
+                          value: p,
+                          child: Row(
+                            children: [
+                              Icon(
+                                p == "Low"
+                                    ? Icons.arrow_downward
+                                    : p == "Medium"
+                                        ? Icons.trending_flat
+                                        : Icons.arrow_upward,
+                                color: p == "Low"
+                                    ? Colors.green
+                                    : p == "Medium"
+                                        ? Colors.orange
+                                        : Colors.red,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(p),
+                            ],
+                          ),
+                        ))
+                    .toList(),
+                onChanged: (v) => priority = v!,
+                decoration: InputDecoration(
+                  labelText: "Priority",
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Due Date Picker
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: dueDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2030),
+                  );
+                  if (picked != null) setState(() => dueDate = picked);
+                },
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: "Due Date",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: const Icon(Icons.calendar_today,
+                        color: Color(0xFF7C3AED)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        DateFormat.yMMMEd().format(dueDate),
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const Icon(Icons.arrow_drop_down),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Save Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7C3AED),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 3,
+                  ),
+                  onPressed: () async {
+                    if (titleController.text.trim().isEmpty) return;
+
+                    task.title = titleController.text.trim();
+                    task.priority = priority;
+                    task.dueDate = dueDate;
+
+                    await _taskService.updateTask(task);
+                    Navigator.pop(context);
+                  },
+                  child: const Text(
+                    "Update Changes",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _carditem(List<Task> filteredTasks) {
+    return Expanded(
+      child: ListView.builder(
+        itemCount: filteredTasks.length,
+        itemBuilder: (context, index) {
+          final task = filteredTasks[index];
+
+          return Slidable(
+            key: ValueKey(task.id),
+
+            // 👉 SWIPE LEFT
+            endActionPane: ActionPane(
+              motion: const StretchMotion(),
+              children: [
+                // ✏️ UPDATE
+                SlidableAction(
+                  onPressed: (context) {
+                    _showUpdateTaskBottomSheet(task);
+                  },
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  icon: Icons.edit,
+                  label: 'Update',
+                ),
+
+                // 🗑️ DELETE
+                SlidableAction(
+                  onPressed: (context) async {
+                    await _taskService.deleteTask(task.id);
+                  },
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  icon: Icons.delete,
+                  label: 'Delete',
+                ),
+              ],
+            ),
+
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.purple.withOpacity(0.15),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () async {
+                      setState(() {
+                        task.isDone = !task.isDone; // toggle
+                      });
+                      await _taskService.updateTask(task);
+                    },
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: task.isDone ? Colors.green : Colors.grey,
+                          width: 2,
+                        ),
+                        color: task.isDone ? Colors.green : Colors.transparent,
+                      ),
+                      child: task.isDone
+                          ? const Icon(
+                              Icons.check,
+                              size: 16,
+                              color: Colors.white,
+                            )
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          task.title,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color:
+                                task.isDone ? Colors.red[500] : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Due: ${DateFormat.MMMd().format(task.dueDate)}",
+                          style: TextStyle(
+                            color:
+                                task.isDone ? Colors.red[500] : Colors.black87,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -384,7 +652,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor:
-          isSelected ? const Color(0xFF7C3AED) : Colors.grey[300],
+              isSelected ? const Color(0xFF7C3AED) : Colors.grey[300],
           foregroundColor: isSelected ? Colors.white : Colors.black,
         ),
         onPressed: () {
@@ -466,9 +734,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text(task.title,
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          decoration: task.isDone
-                              ? TextDecoration.lineThrough
-                              : null)),
+                          decoration:
+                              task.isDone ? TextDecoration.lineThrough : null)),
                   const Spacer(),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -547,7 +814,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       child: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+        stream:
+            FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return Column(
@@ -565,7 +833,7 @@ class _HomeScreenState extends State<HomeScreen> {
           final data = snapshot.data!.data() as Map<String, dynamic>;
           final name = data['fullName'] ?? 'User';
           final image = data['profileUrl'] ?? '';
-          final gender = data['gender'] ?? null;
+          final gender = data['gender'];
 
           return Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -576,10 +844,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 backgroundImage: image.isNotEmpty
                     ? NetworkImage(image)
                     : (gender == 'male'
-                    ? const AssetImage('assets/images/default_profile.png')
-                    : gender == 'female'
-                    ? const AssetImage('assets/images/default_pf_girl.png')
-                    : null) as ImageProvider?,
+                        ? const AssetImage('assets/images/default_profile.png')
+                        : gender == 'female'
+                            ? const AssetImage(
+                                'assets/images/default_pf_girl.png')
+                            : null) as ImageProvider?,
                 child: image.isEmpty && gender == null
                     ? const Icon(Icons.person, size: 40, color: Colors.white)
                     : null,
@@ -588,7 +857,9 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 name,
                 style: const TextStyle(
-                    color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 6),
               Text(
@@ -623,12 +894,12 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.circular(24),
           boxShadow: active
               ? [
-            BoxShadow(
-              color: Colors.purple.withOpacity(0.2),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            )
-          ]
+                  BoxShadow(
+                    color: Colors.purple.withOpacity(0.2),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  )
+                ]
               : [],
         ),
         child: Row(
@@ -791,7 +1062,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
   // ================= BOTTOM NAV =================
   Widget _buildBottomNav() {
     return SafeArea(
@@ -832,23 +1102,24 @@ class _HomeScreenState extends State<HomeScreen> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 350),
         curve: Curves.easeOutCubic,
-        padding: EdgeInsets.symmetric(horizontal: active ? 20 : 14, vertical: 10),
+        padding:
+            EdgeInsets.symmetric(horizontal: active ? 20 : 14, vertical: 10),
         decoration: BoxDecoration(
           gradient: active
               ? const LinearGradient(
-            colors: [Color(0xFF7C3AED), Color(0xFF9333EA)],
-          )
+                  colors: [Color(0xFF7C3AED), Color(0xFF9333EA)],
+                )
               : null,
           color: active ? null : Colors.transparent,
           borderRadius: BorderRadius.circular(24),
           boxShadow: active
               ? [
-            BoxShadow(
-              color: const Color(0xFF7C3AED).withOpacity(0.4),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ]
+                  BoxShadow(
+                    color: const Color(0xFF7C3AED).withOpacity(0.4),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ]
               : [],
         ),
         child: Row(
@@ -882,11 +1153,14 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.task_alt, size: 120, color: Colors.purple.withOpacity(0.3)),
+          Icon(Icons.task_alt,
+              size: 120, color: Colors.purple.withOpacity(0.3)),
           const SizedBox(height: 16),
           Text(text,
               style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.w600, color: Colors.grey)),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey)),
           const SizedBox(height: 8),
           const Text("Tap + to add your first task",
               style: TextStyle(color: Colors.grey)),

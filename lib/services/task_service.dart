@@ -1,9 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../models/task_model.dart';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../models/task_model.dart';
 
 class TaskService {
@@ -18,7 +15,7 @@ class TaskService {
         .orderBy('dueDate', descending: true)
         .snapshots()
         .map((snapshot) =>
-        snapshot.docs.map((doc) => Task.fromFirestore(doc)).toList());
+            snapshot.docs.map((doc) => Task.fromFirestore(doc)).toList());
   }
 
   // ✅ ADD TASK
@@ -39,7 +36,11 @@ class TaskService {
   // ✅ UPDATE
   Future<void> updateTask(Task task) async {
     await _db.collection('tasks').doc(task.id).update({
+      'title': task.title,
+      'category': task.category,
+      'priority': task.priority,
       'isDone': task.isDone,
+      'dueDate': Timestamp.fromDate(task.dueDate), // important
     });
   }
 
@@ -48,4 +49,3 @@ class TaskService {
     await _db.collection('tasks').doc(id).delete();
   }
 }
-
