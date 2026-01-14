@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_project_aub/layout/calendar_screen.dart';
 import 'package:flutter_project_aub/layout/setting_screen.dart';
+import 'package:flutter_project_aub/layout/tasks_screen.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
@@ -11,6 +12,7 @@ import '../models/task_model.dart';
 import '../services/task_service.dart';
 import '../widgets/floating_btn.dart';
 import 'add_task_screen.dart';
+import 'notification_service.dart';
 
 enum TaskFilter { all, completed, pending }
 
@@ -19,6 +21,7 @@ class HomeScreen extends StatefulWidget {
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
+
 }
 
 class _HomeScreenState extends State<HomeScreen> {
@@ -28,6 +31,10 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   TaskFilter _filter = TaskFilter.all;
   String? selectedTaskId;
+
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = "";
+
 
   @override
   Widget build(BuildContext context) {
@@ -280,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 0:
         return _buildHomeTab();
       case 1:
-        return _buildTasksTab();
+        return const TasksScreen();
       case 2:
         return const CalendarScreen();
       case 3:
@@ -310,13 +317,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
 
                 final tasks = snapshot.data ?? [];
-                final filteredTasks = _applyFilter(tasks);
+                //search and filter
+                final filteredTasks = _applySearch(_applyFilter(tasks));
 
                 final total = tasks.length;
                 final completed = tasks.where((t) => t.isDone).length;
                 final pending = total - completed;
 
-                if (tasks.isEmpty) return _emptyState("No tasks yet");
+                //search empty state
+                if (filteredTasks.isEmpty) {
+                  return _emptyState("No matching tasks found");
+                }
 
                 return Column(
                   children: [
@@ -334,6 +345,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
 
   void _showUpdateTaskBottomSheet(Task task) {
     final titleController = TextEditingController(text: task.title);
@@ -485,6 +497,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     task.dueDate = dueDate;
 
                     await _taskService.updateTask(task);
+
+                    // Schedule notification for updated task
+                    await _scheduleTaskNotification(task);
+
                     Navigator.pop(context);
                   },
                   child: const Text(
@@ -926,96 +942,115 @@ class _HomeScreenState extends State<HomeScreen> {
   // ================= LOGOUT ITEM WITH SIMPLE MODERN DIALOG =================
   Widget _drawerLogout() {
     return GestureDetector(
-      onTap: () {
-        showDialog(
-          context: context,
-          builder: (ctx) => Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
-            ),
-            backgroundColor: Colors.white, // simple white background
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.logout,
-                    size: 50,
-                    color: Colors.redAccent,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "Logout",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
+        onTap: () {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              backgroundColor: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.logout,
+                      size: 50,
+                      color: Colors.redAccent,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "Are you sure you want to logout?",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.black54,
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Logout",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      // Cancel button
-                      Expanded(
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16)),
-                            side: BorderSide(color: Colors.grey.shade300),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          onPressed: () {
-                            Navigator.of(ctx).pop(); // close dialog
-                          },
-                          child: const Text(
-                            "Cancel",
-                            style: TextStyle(
+                    const SizedBox(height: 8),
+                    const Text(
+                      "Are you sure you want to logout?",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        // ❌ Cancel
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              side: BorderSide(color: Colors.grey.shade300),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            onPressed: () {
+                              Navigator.of(ctx).pop(); // close dialog
+                            },
+                            child: const Text(
+                              "Cancel",
+                              style: TextStyle(
                                 color: Colors.black87,
-                                fontWeight: FontWeight.bold),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      // Logout button
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.redAccent,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16)),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          onPressed: () async {
-                            Navigator.of(ctx).pop(); // close dialog
-                            await FirebaseAuth.instance.signOut();
-                            Navigator.of(context).pop(); // close drawer
-                            // Navigate to login if needed
-                          },
-                          child: const Text(
-                            "Logout",
-                            style: TextStyle(
+
+                        const SizedBox(width: 16),
+
+                        // ✅ Logout
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.redAccent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            onPressed: () async {
+                              Navigator.of(ctx).pop(); // close dialog
+
+                              await FirebaseAuth.instance.signOut();
+
+                              // ✅ If you DO NOT use AuthGate, uncomment below:
+                              /*
+                          if (!context.mounted) return;
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/login',
+                            (route) => false,
+                          );
+                          */
+                            },
+                            child: const Text(
+                              "Logout",
+                              style: TextStyle(
                                 color: Colors.white,
-                                fontWeight: FontWeight.bold),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  )
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+
+
+      // ===== Drawer Logout Button UI =====
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1027,7 +1062,7 @@ class _HomeScreenState extends State<HomeScreen> {
               color: Colors.red.withOpacity(0.2),
               blurRadius: 12,
               offset: const Offset(0, 6),
-            )
+            ),
           ],
         ),
         child: Row(
@@ -1042,10 +1077,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.redAccent.withOpacity(0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
-                  )
+                  ),
                 ],
               ),
-              child: const Icon(Icons.logout, color: Colors.white),
+              child: const Icon(
+                Icons.logout,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(width: 16),
             const Text(
@@ -1055,12 +1093,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
-            )
+            ),
           ],
         ),
       ),
     );
   }
+
+
 
   // ================= BOTTOM NAV =================
   Widget _buildBottomNav() {
@@ -1170,6 +1210,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ================= SEARCH BAR =================
+  // ================= SEARCH BAR =================
   Widget _searchBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1180,13 +1221,53 @@ class _HomeScreenState extends State<HomeScreen> {
           BoxShadow(color: Colors.purple.withOpacity(0.15), blurRadius: 10)
         ],
       ),
-      child: const TextField(
-        decoration: InputDecoration(
+      child: TextField(
+        controller: _searchController,
+        onChanged: (value) {
+          setState(() {
+            _searchText = value.toLowerCase();
+          });
+        },
+        decoration: const InputDecoration(
           hintText: "Search tasks...",
           border: InputBorder.none,
           icon: Icon(Icons.search),
         ),
       ),
     );
+  }
+
+  List<Task> _applySearch(List<Task> tasks) {
+    if (_searchText.isEmpty) return tasks;
+
+    return tasks.where((task) {
+      return task.title.toLowerCase().contains(_searchText) ||
+          task.category.toLowerCase().contains(_searchText) ||
+          task.priority.toLowerCase().contains(_searchText);
+    }).toList();
+  }
+
+
+  // ================= NOTIFICATION HELPERS =================
+  Future<void> _scheduleTaskNotification(Task task) async {
+    try {
+      await NotificationService.scheduleTaskReminder(
+        id: task.id.hashCode, // unique ID per task
+        title: task.title,
+        dueDate: task.dueDate,
+      );
+      print("Notification scheduled for ${task.dueDate}");
+    } catch (e) {
+      print("Error scheduling notification: $e");
+    }
+  }
+
+
+  Future<void> _cancelTaskNotification(Task task) async {
+    try {
+      await NotificationService.cancel(task.id.hashCode);
+    } catch (e) {
+      print("Error cancelling notification: $e");
+    }
   }
 }

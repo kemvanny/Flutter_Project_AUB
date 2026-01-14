@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/task_model.dart';
 import '../services/task_service.dart';
 import '../widgets/ModernWowButton.dart';
+import 'notification_service.dart';
 
 class AddTaskScreen extends StatefulWidget {
   const AddTaskScreen({super.key});
@@ -17,7 +18,6 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   final _titleController = TextEditingController();
   final TaskService _taskService = TaskService();
 
-  // Predefined categories
   final List<String> _categories = [
     "Daily Life",
     "Celebration",
@@ -25,243 +25,171 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     "School",
     "Other"
   ];
-  String? _selectedCategory;
 
+  String? _selectedCategory;
   String _priority = "Medium";
   DateTime? _selectedDateTime;
 
-  int _selectedIndex = 1; // Highlight Tasks tab
-
-  void _onNavItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-      // You can navigate to other main tabs/screens here
-    });
-  }
+  bool _loading = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F1F6),
+      backgroundColor: const Color(0xFFF6F5FA),
       appBar: AppBar(
         title: const Text(
           "Add New Task",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            letterSpacing: 0.5,
+          ),
         ),
         centerTitle: true,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 4,
+        shadowColor: Colors.purple.withOpacity(0.3), // soft shadow
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF7C3AED), Color(0xFF9333EA)],
+              colors: [Color(0xFF7C3AED), Color(0xFF9F7AEA)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
         ),
       ),
+
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // Modern Glass Card
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.85),
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.purple.withOpacity(0.1),
-                    blurRadius: 30,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Task Title
-                  _modernInput(
-                      controller: _titleController,
-                      label: "Task Title",
-                      icon: Icons.task_alt),
-                  const SizedBox(height: 20),
-
-                  // Category Selector - modern pill style
-                  const Text(
-                    "Category",
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedCategory,
-                      items: _categories
-                          .map((c) => DropdownMenuItem(
-                        value: c,
-                        child: Text(c),
-                      ))
-                          .toList(),
-                      onChanged: (val) => setState(() => _selectedCategory = val),
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: "Select category",
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Priority Selector
-                  const Text(
-                    "Priority",
-                    style:
-                    TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 12,
-                    children: ["High", "Medium", "Low"].map((p) {
-                      Color bg = p == "High"
-                          ? Colors.redAccent
-                          : p == "Medium"
-                          ? Colors.orangeAccent
-                          : Colors.green;
-                      return ChoiceChip(
-                        label: Text(p),
-                        selected: _priority == p,
-                        onSelected: (_) => setState(() => _priority = p),
-                        selectedColor: bg,
-                        backgroundColor: bg.withOpacity(0.2),
-                        labelStyle: TextStyle(
-                            color: _priority == p ? Colors.white : bg,
-                            fontWeight: FontWeight.w600),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Deadline Picker
-                  const Text(
-                    "Deadline",
-                    style:
-                    TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: _pickDateTime,
-                    borderRadius: BorderRadius.circular(18),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 16, horizontal: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.purple.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 5))
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _selectedDateTime != null
-                                ? DateFormat('yyyy-MM-dd – HH:mm')
-                                .format(_selectedDateTime!)
-                                : "Select deadline",
-                            style: TextStyle(
-                              color: _selectedDateTime != null
-                                  ? Colors.black
-                                  : Colors.grey[600],
-                            ),
-                          ),
-                          const Icon(Icons.calendar_today, color: Colors.purple),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            // Add Task Button with gradient and shadow
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(30),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF7C3AED), Color(0xFF9333EA)],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.purple.withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(30),
-                  onTap: _addTask,
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 18),
-                    child: Center(
-                      child: Text(
-                        "Add Task",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            letterSpacing: 1),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+            _modernInput("Task Title", Icons.task_alt, _titleController),
+            const SizedBox(height: 20),
+            _modernDropdown(),
+            const SizedBox(height: 20),
+            _prioritySelector(),
+            const SizedBox(height: 20),
+            _deadlinePicker(),
+            const SizedBox(height: 40),
+            ModernWowButton(
+              text: "Add Task",
+              onPressed: _addTask,
+              loading: _loading,
             ),
           ],
         ),
       ),
     );
-
   }
 
-  Widget _modernInput({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-  }) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon),
-        filled: true,
-        fillColor: Colors.grey[100],
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
+  // ================= MODERN INPUT =================
+  Widget _modernInput(String label, IconData icon, TextEditingController c) {
+    return Material(
+      elevation: 3,
+      borderRadius: BorderRadius.circular(16),
+      child: TextField(
+        controller: c,
+        style: const TextStyle(fontSize: 16),
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: const Color(0xFF7C3AED)),
+          hintText: label,
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
         ),
       ),
     );
   }
 
-  // ---------------- PICK DATE/TIME ----------------
+  // ================= MODERN DROPDOWN =================
+  Widget _modernDropdown() {
+    return Material(
+      elevation: 3,
+      borderRadius: BorderRadius.circular(16),
+      child: DropdownButtonFormField<String>(
+        value: _selectedCategory,
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          hintText: "Select Category",
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        items: _categories
+            .map((c) => DropdownMenuItem(
+          value: c,
+          child: Text(c, style: const TextStyle(fontSize: 16)),
+        ))
+            .toList(),
+        onChanged: (v) => setState(() => _selectedCategory = v),
+      ),
+    );
+  }
+
+  // ================= PRIORITY SELECTOR =================
+  Widget _prioritySelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("Priority",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 12,
+          children: ["High", "Medium", "Low"].map((p) {
+            final selected = _priority == p;
+            return ChoiceChip(
+              label: Text(p,
+                  style: TextStyle(
+                      color: selected ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.bold)),
+              selected: selected,
+              selectedColor: p == "High"
+                  ? Colors.red
+                  : p == "Medium"
+                  ? const Color(0xFF7C3AED)
+                  : Colors.green,
+              backgroundColor: Colors.white,
+              shadowColor: const Color(0xFF7C3AED).withOpacity(0.2),
+              elevation: 2,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              onSelected: (_) => setState(() => _priority = p),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  // ================= DEADLINE PICKER =================
+  Widget _deadlinePicker() {
+    return Material(
+      elevation: 3,
+      borderRadius: BorderRadius.circular(16),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        tileColor: Colors.white,
+        leading: const Icon(Icons.calendar_today, color: Color(0xFF7C3AED)),
+        title: Text(
+          _selectedDateTime == null
+              ? "Select Deadline"
+              : DateFormat('yyyy-MM-dd HH:mm').format(_selectedDateTime!),
+          style: const TextStyle(fontSize: 16),
+        ),
+        trailing: const Icon(Icons.keyboard_arrow_down),
+        onTap: _pickDateTime,
+      ),
+    );
+  }
+
   Future<void> _pickDateTime() async {
     final date = await showDatePicker(
       context: context,
@@ -278,32 +206,43 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     if (time == null) return;
 
     setState(() {
-      _selectedDateTime = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        time.hour,
-        time.minute,
-      );
+      _selectedDateTime =
+          DateTime(date.year, date.month, date.day, time.hour, time.minute);
     });
   }
 
-  // ---------------- ADD TASK ----------------
   Future<void> _addTask() async {
-    if (_titleController.text.isEmpty || _selectedCategory == null) return;
+    if (_titleController.text.isEmpty ||
+        _selectedCategory == null ||
+        _selectedDateTime == null) return;
+
+    setState(() => _loading = true);
 
     final uid = FirebaseAuth.instance.currentUser!.uid;
+
     final task = Task(
       id: '',
-      title: _titleController.text,
+      title: _titleController.text.trim(),
       category: _selectedCategory!,
       priority: _priority,
       isDone: false,
-      dueDate: _selectedDateTime ?? DateTime.now(),
+      dueDate: _selectedDateTime!,
       userId: uid,
     );
 
-    await _taskService.addTask(task);
+    final taskId = await _taskService.addTask(task);
+
+    final reminderTime =
+    _selectedDateTime!.subtract(const Duration(minutes: 15));
+    if (reminderTime.isAfter(DateTime.now())) {
+      await NotificationService.scheduleTaskReminder(
+        id: taskId.hashCode,
+        title: task.title,
+        dueDate: reminderTime,
+      );
+    }
+
+    setState(() => _loading = false);
     Navigator.pop(context);
   }
 }

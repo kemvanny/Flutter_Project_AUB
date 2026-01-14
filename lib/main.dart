@@ -11,6 +11,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'auth/auth_gate.dart';
 import 'layout/complete_profile_screen.dart';
 import 'layout/home_screen.dart';
+import 'layout/notification_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +20,14 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // 1️⃣ Request notification permission (important for Android 13+)
+  if (await Permission.notification.isDenied) {
+    await Permission.notification.request();
+  }
+
+  // 2️⃣ Initialize notification service
+  await NotificationService.init();
 
   runApp(const MyApp());
 }
