@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../models/task_model.dart';
 import '../services/task_service.dart';
 
@@ -18,9 +19,15 @@ class _TasksScreenState extends State<TasksScreen> {
   String? _selectedCategory;
   String? _selectedPriority;
 
-  final List<String> _months =
-  List.generate(12, (index) => DateFormat.MMMM().format(DateTime(0, index + 1)));
-  final List<String> _categories = ["Daily Life", "Celebration", "Work", "School", "Other"];
+  final List<String> _months = List.generate(
+      12, (index) => DateFormat.MMMM().format(DateTime(0, index + 1)));
+  final List<String> _categories = [
+    "Daily Life",
+    "Celebration",
+    "Work",
+    "School",
+    "Other"
+  ];
   final List<String> _priorities = ["High", "Medium", "Low"];
 
   @override
@@ -44,21 +51,27 @@ class _TasksScreenState extends State<TasksScreen> {
               // Apply filters
               if (_selectedMonth != null && _selectedMonth != "All") {
                 final monthIndex = _months.indexOf(_selectedMonth!) + 1;
-                tasks = tasks.where((t) => t.dueDate.month == monthIndex).toList();
+                tasks =
+                    tasks.where((t) => t.dueDate.month == monthIndex).toList();
               }
 
               if (_selectedCategory != null && _selectedCategory != "All") {
-                tasks = tasks.where((t) => t.category == _selectedCategory).toList();
+                tasks = tasks
+                    .where((t) => t.category == _selectedCategory)
+                    .toList();
               }
 
               if (_selectedPriority != null && _selectedPriority != "All") {
-                tasks = tasks.where((t) => t.priority == _selectedPriority).toList();
+                tasks = tasks
+                    .where((t) => t.priority == _selectedPriority)
+                    .toList();
               }
 
               if (tasks.isEmpty) return _emptyState("No tasks found");
 
               return GridView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   mainAxisSpacing: 16,
@@ -117,8 +130,8 @@ class _TasksScreenState extends State<TasksScreen> {
           gradient: task.isDone
               ? LinearGradient(colors: [Colors.green[100]!, Colors.green[50]!])
               : isOverdue
-              ? LinearGradient(colors: [Colors.red[100]!, Colors.red[50]!])
-              : LinearGradient(colors: [Colors.white, Colors.grey[50]!]),
+                  ? LinearGradient(colors: [Colors.red[100]!, Colors.red[50]!])
+                  : LinearGradient(colors: [Colors.white, Colors.grey[50]!]),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
@@ -127,70 +140,77 @@ class _TasksScreenState extends State<TasksScreen> {
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Priority badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: priorityColor,
-                borderRadius: BorderRadius.circular(12),
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Priority badge
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: priorityColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  task.priority,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
               ),
-              child: Text(
-                task.priority,
-                style: const TextStyle(
-                  color: Colors.white,
+              const SizedBox(height: 8),
+              Text(
+                task.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
+                  fontSize: 16,
+                  color: isOverdue ? Colors.red : Colors.black87,
+                  decoration: task.isDone ? TextDecoration.lineThrough : null,
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              task.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: isOverdue ? Colors.red : Colors.black87,
-                decoration: task.isDone ? TextDecoration.lineThrough : null,
-              ),
-            ),
-            const Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      DateFormat.MMMd().format(task.dueDate),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isOverdue ? Colors.red[700] : Colors.grey[700],
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        DateFormat.MMMd().format(task.dueDate),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isOverdue ? Colors.red[700] : Colors.grey[700],
+                        ),
                       ),
-                    ),
-                    Text(
-                      task.category,
-                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-                Checkbox(
-                  value: task.isDone,
-                  activeColor: Colors.purple,
-                  onChanged: (v) {
-                    setState(() {
-                      task.isDone = v!;
-                      _taskService.updateTask(task);
-                    });
-                  },
-                ),
-              ],
-            ),
-          ],
+                      Text(
+                        task.category,
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                  Checkbox(
+                    visualDensity: VisualDensity.compact, // ⭐ IMPORTANT
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    value: task.isDone,
+                    activeColor: Colors.purple,
+                    onChanged: (v) {
+                      setState(() {
+                        task.isDone = v!;
+                        _taskService.updateTask(task);
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -247,9 +267,8 @@ class _TasksScreenState extends State<TasksScreen> {
     return PopupMenuButton<String>(
       onSelected: onSelected,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      itemBuilder: (context) => items
-          .map((e) => PopupMenuItem(value: e, child: Text(e)))
-          .toList(),
+      itemBuilder: (context) =>
+          items.map((e) => PopupMenuItem(value: e, child: Text(e))).toList(),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
