@@ -1,7 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
+import 'package:table_calendar/table_calendar.dart';
+
 import '../models/task_model.dart';
 import '../services/task_service.dart';
 
@@ -23,7 +23,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -34,7 +33,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ],
         ),
       ),
-
     );
   }
 
@@ -46,7 +44,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
         final tasks = snapshot.data ?? [];
 
         return Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           elevation: 6,
           shadowColor: Colors.purple.withOpacity(0.3),
           child: Padding(
@@ -62,9 +61,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   _focusedDay = focusedDay;
                   _tasksForSelectedDay = tasks
                       .where((t) =>
-                  t.dueDate.year == selectedDay.year &&
-                      t.dueDate.month == selectedDay.month &&
-                      t.dueDate.day == selectedDay.day)
+                          t.dueDate.year == selectedDay.year &&
+                          t.dueDate.month == selectedDay.month &&
+                          t.dueDate.day == selectedDay.day)
                       .toList();
                 });
               },
@@ -99,9 +98,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
               eventLoader: (day) {
                 return tasks
                     .where((t) =>
-                t.dueDate.year == day.year &&
-                    t.dueDate.month == day.month &&
-                    t.dueDate.day == day.day)
+                        t.dueDate.year == day.year &&
+                        t.dueDate.month == day.month &&
+                        t.dueDate.day == day.day)
                     .toList();
               },
             ),
@@ -120,8 +119,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       return true;
     }).toList();
 
-    final completedCount =
-        _tasksForSelectedDay.where((t) => t.isDone).length;
+    final completedCount = _tasksForSelectedDay.where((t) => t.isDone).length;
     final pendingCount = _tasksForSelectedDay.length - completedCount;
 
     return Expanded(
@@ -175,93 +173,94 @@ class _CalendarScreenState extends State<CalendarScreen> {
               // Task list
               filteredTasks.isEmpty
                   ? Expanded(
-                child: Center(
-                  child: Text(
-                    _selectedDay != null
-                        ? "No tasks for ${DateFormat.MMMd().format(_selectedDay!)}"
-                        : "Select a day to view tasks",
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              )
-                  : Expanded(
-                child: ListView.builder(
-                  itemCount: filteredTasks.length,
-                  itemBuilder: (context, index) {
-                    final task = filteredTasks[index];
-                    return Dismissible(
-                      key: Key(task.id),
-                      background: Container(
-                        color: Colors.green,
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.only(left: 20),
-                        child: const Icon(Icons.check, color: Colors.white),
-                      ),
-                      secondaryBackground: Container(
-                        color: Colors.red,
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 20),
-                        child: const Icon(Icons.delete, color: Colors.white),
-                      ),
-                      onDismissed: (direction) {
-                        if (direction == DismissDirection.startToEnd) {
-                          setState(() {
-                            task.isDone = true;
-                            _taskService.updateTask(task);
-                          });
-                        } else {
-                          _taskService.deleteTask(task.id);
-                          setState(() {
-                            _tasksForSelectedDay.remove(task);
-                          });
-                        }
-                      },
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          radius: 14,
-                          backgroundColor: task.isDone
-                              ? Colors.green
-                              : task.priority == "High"
-                              ? Colors.red
-                              : task.priority == "Medium"
-                              ? Colors.orange
-                              : Colors.blue,
-                        ),
-                        title: Text(
-                          task.title,
+                      child: Center(
+                        child: Text(
+                          _selectedDay != null
+                              ? "No tasks for ${DateFormat.MMMd().format(_selectedDay!)}"
+                              : "Select a day to view tasks",
                           style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            decoration: task.isDone
-                                ? TextDecoration.lineThrough
-                                : TextDecoration.none,
+                            color: Colors.grey[500],
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        subtitle: Text(
-                          "Due: ${DateFormat.MMMd().format(task.dueDate)}",
-                          style: TextStyle(color: Colors.grey[600]),
-                        ),
-                        onTap: () => _showEditTaskDialog(task),
                       ),
-                    );
-                  },
-                ),
-              ),
+                    )
+                  : Expanded(
+                      child: ListView.builder(
+                        itemCount: filteredTasks.length,
+                        itemBuilder: (context, index) {
+                          final task = filteredTasks[index];
+                          return Dismissible(
+                            key: Key(task.id),
+                            background: Container(
+                              color: Colors.green,
+                              alignment: Alignment.centerLeft,
+                              padding: const EdgeInsets.only(left: 20),
+                              child:
+                                  const Icon(Icons.check, color: Colors.white),
+                            ),
+                            secondaryBackground: Container(
+                              color: Colors.red,
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              child:
+                                  const Icon(Icons.delete, color: Colors.white),
+                            ),
+                            onDismissed: (direction) {
+                              if (direction == DismissDirection.startToEnd) {
+                                setState(() {
+                                  task.isDone = true;
+                                  _taskService.updateTask(task);
+                                });
+                              } else {
+                                _taskService.deleteTask(task.id);
+                                setState(() {
+                                  _tasksForSelectedDay.remove(task);
+                                });
+                              }
+                            },
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                radius: 14,
+                                backgroundColor: task.isDone
+                                    ? Colors.green
+                                    : task.priority == "High"
+                                        ? Colors.red
+                                        : task.priority == "Medium"
+                                            ? Colors.orange
+                                            : Colors.blue,
+                              ),
+                              title: Text(
+                                task.title,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  decoration: task.isDone
+                                      ? TextDecoration.lineThrough
+                                      : TextDecoration.none,
+                                ),
+                              ),
+                              subtitle: Text(
+                                "Due: ${DateFormat.MMMd().format(task.dueDate)}",
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
+                              onTap: () => _showEditTaskDialog(task),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
             ],
           ),
-
         ),
       ),
     );
   }
 
   void _showAddTaskDialog() {
-    final _titleController = TextEditingController();
-    String _priority = "Low"; // <-- make sure this exists
-    DateTime _dueDate = _selectedDay ?? DateTime.now();
+    final titleController = TextEditingController();
+    String priority = "Low"; // <-- make sure this exists
+    DateTime dueDate = _selectedDay ?? DateTime.now();
 
     showDialog(
       context: context,
@@ -271,16 +270,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
-              controller: _titleController,
+              controller: titleController,
               decoration: const InputDecoration(labelText: "Task title"),
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _priority,
+              initialValue: priority,
               items: ["Low", "Medium", "High"]
                   .map((p) => DropdownMenuItem(value: p, child: Text(p)))
                   .toList(),
-              onChanged: (v) => _priority = v!,
+              onChanged: (v) => priority = v!,
               decoration: const InputDecoration(labelText: "Priority"),
             ),
             const SizedBox(height: 8),
@@ -288,18 +287,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
               onTap: () async {
                 final picked = await showDatePicker(
                   context: context,
-                  initialDate: _dueDate,
+                  initialDate: dueDate,
                   firstDate: DateTime(2020),
                   lastDate: DateTime(2030),
                 );
-                if (picked != null) _dueDate = picked;
+                if (picked != null) dueDate = picked;
               },
               child: InputDecorator(
                 decoration: const InputDecoration(labelText: "Due Date"),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(DateFormat.MMMd().format(_dueDate)),
+                    Text(DateFormat.MMMd().format(dueDate)),
                     const Icon(Icons.calendar_today),
                   ],
                 ),
@@ -312,18 +311,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text("Cancel"),
           )
-
         ],
       ),
     );
   }
 
-
   /// Edit Task Dialog
   void _showEditTaskDialog(Task task) {
-    final _titleController = TextEditingController(text: task.title);
-    String _priority = task.priority;
-    DateTime _dueDate = task.dueDate;
+    final titleController = TextEditingController(text: task.title);
+    String priority = task.priority;
+    DateTime dueDate = task.dueDate;
 
     showDialog(
       context: context,
@@ -333,16 +330,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
-              controller: _titleController,
+              controller: titleController,
               decoration: const InputDecoration(labelText: "Task title"),
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _priority,
+              initialValue: priority,
               items: ["Low", "Medium", "High"]
                   .map((p) => DropdownMenuItem(value: p, child: Text(p)))
                   .toList(),
-              onChanged: (v) => _priority = v!,
+              onChanged: (v) => priority = v!,
               decoration: const InputDecoration(labelText: "Priority"),
             ),
             const SizedBox(height: 8),
@@ -350,18 +347,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
               onTap: () async {
                 final picked = await showDatePicker(
                   context: context,
-                  initialDate: _dueDate,
+                  initialDate: dueDate,
                   firstDate: DateTime(2020),
                   lastDate: DateTime(2030),
                 );
-                if (picked != null) _dueDate = picked;
+                if (picked != null) dueDate = picked;
               },
               child: InputDecorator(
                 decoration: const InputDecoration(labelText: "Due Date"),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(DateFormat.MMMd().format(_dueDate)),
+                    Text(DateFormat.MMMd().format(dueDate)),
                     const Icon(Icons.calendar_today),
                   ],
                 ),
@@ -375,10 +372,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
               child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () {
-              if (_titleController.text.trim().isNotEmpty) {
-                task.title = _titleController.text.trim();
-                task.priority = _priority;
-                task.dueDate = _dueDate;
+              if (titleController.text.trim().isNotEmpty) {
+                task.title = titleController.text.trim();
+                task.priority = priority;
+                task.dueDate = dueDate;
                 _taskService.updateTask(task);
                 setState(() {});
                 Navigator.pop(context);

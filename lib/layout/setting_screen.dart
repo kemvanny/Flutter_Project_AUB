@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -39,14 +40,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ================= UPLOAD IMAGE =================
   Future<String?> _uploadProfileImage(File file) async {
     try {
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('profiles/$uid/profile.jpg');
-      await ref.putFile(file);
-      return await ref.getDownloadURL();
+      final ref =
+          FirebaseStorage.instance.ref().child('profiles/$uid/profile.jpg');
+
+      final uploadTask = await ref.putFile(file);
+
+      if (uploadTask.state == TaskState.success) {
+        return await ref.getDownloadURL();
+      }
+
+      return null;
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to upload image: $e')));
+        SnackBar(content: Text('Failed to upload image: $e')),
+      );
       return null;
     }
   }
@@ -133,10 +140,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: const Text(
                           "Cancel",
                           style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black,
-                            fontSize: 18
-                          ),
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black,
+                              fontSize: 18),
                         ),
                       ),
                     ),
@@ -176,7 +182,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-
   // ================= SAVE PROFILE =================
   Future<void> _saveProfile() async {
     setState(() => loading = true);
@@ -188,14 +193,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       final userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
       final updateData = <String, dynamic>{};
-      if (nameController.text.isNotEmpty) updateData['fullName'] = nameController.text;
+      if (nameController.text.isNotEmpty)
+        updateData['fullName'] = nameController.text;
       if (imageUrl != null) updateData['profileUrl'] = imageUrl;
       if (updateData.isNotEmpty) await userDoc.update(updateData);
 
       // Update email if changed
       if (emailController.text.isNotEmpty &&
           emailController.text != FirebaseAuth.instance.currentUser!.email) {
-        await FirebaseAuth.instance.currentUser!.updateEmail(emailController.text);
+        await FirebaseAuth.instance.currentUser!
+            .updateEmail(emailController.text);
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -216,48 +223,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text("Change Password"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: passController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: "New Password"),
+              title: const Text("Change Password"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: passController,
+                    obscureText: true,
+                    decoration:
+                        const InputDecoration(labelText: "New Password"),
+                  ),
+                  TextField(
+                    controller: confirmController,
+                    obscureText: true,
+                    decoration:
+                        const InputDecoration(labelText: "Confirm Password"),
+                  ),
+                ],
               ),
-              TextField(
-                controller: confirmController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: "Confirm Password"),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Cancel")),
-            ElevatedButton(
-                onPressed: () async {
-                  if (passController.text.isEmpty ||
-                      passController.text != confirmController.text) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Passwords do not match')));
-                    return;
-                  }
-                  try {
-                    await FirebaseAuth.instance.currentUser!
-                        .updatePassword(passController.text);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Password updated')));
-                    Navigator.pop(context);
-                  } catch (e) {
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(SnackBar(content: Text('Error: $e')));
-                  }
-                },
-                child: const Text("Save"))
-          ],
-        ));
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("Cancel")),
+                ElevatedButton(
+                    onPressed: () async {
+                      if (passController.text.isEmpty ||
+                          passController.text != confirmController.text) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Passwords do not match')));
+                        return;
+                      }
+                      try {
+                        await FirebaseAuth.instance.currentUser!
+                            .updatePassword(passController.text);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Password updated')));
+                        Navigator.pop(context);
+                      } catch (e) {
+                        ScaffoldMessenger.of(context)
+                            .showSnackBar(SnackBar(content: Text('Error: $e')));
+                      }
+                    },
+                    child: const Text("Save"))
+              ],
+            ));
   }
 
   @override
@@ -268,7 +278,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       //   backgroundColor: const Color(0xFF7C3AED),
       // ),
       body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+        stream:
+            FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -282,7 +293,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-
                 // ================= PROFILE CARD =================
                 Container(
                   padding: const EdgeInsets.all(20),
@@ -308,22 +318,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               backgroundColor: Colors.purple[100],
                               backgroundImage: _imageFile != null
                                   ? FileImage(_imageFile!) // user picked image
-                                  : (data['profileUrl'] != null && data['profileUrl'].isNotEmpty
-                                  ? NetworkImage(data['profileUrl']) // uploaded image
-                                  : (data['gender'] == 'male'
-                                  ? const AssetImage('assets/images/default_profile.png')
-                                  : data['gender'] == 'female'
-                                  ? const AssetImage('assets/images/default_pf_girl.png')
-                                  : null)) as ImageProvider?, // fallback to gender or null
+                                  : (data['profileUrl'] != null &&
+                                              data['profileUrl'].isNotEmpty
+                                          ? NetworkImage(data[
+                                              'profileUrl']) // uploaded image
+                                          : (data['gender'] == 'male'
+                                              ? const AssetImage(
+                                                  'assets/images/default_profile.png')
+                                              : data['gender'] == 'female'
+                                                  ? const AssetImage(
+                                                      'assets/images/default_pf_girl.png')
+                                                  : null))
+                                      as ImageProvider?, // fallback to gender or null
                               child: _imageFile == null &&
-                                  (data['profileUrl'] == null || data['profileUrl'].isEmpty) &&
-                                  (data['gender'] == null)
-                                  ? const Icon(Icons.person, size: 40, color: Colors.white)
+                                      (data['profileUrl'] == null ||
+                                          data['profileUrl'].isEmpty) &&
+                                      (data['gender'] == null)
+                                  ? const Icon(Icons.person,
+                                      size: 40, color: Colors.white)
                                   : null,
                             ),
                           ),
-
-
                           Positioned(
                             bottom: 0,
                             right: 0,
@@ -343,8 +358,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const Text(
                         "Edit Profile",
                         style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold),
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
                       const Text(
@@ -415,8 +429,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           );
-
-
         },
       ),
     );
@@ -476,5 +488,3 @@ Widget _actionButton({
     ),
   );
 }
-
-

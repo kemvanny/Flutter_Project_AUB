@@ -12,7 +12,6 @@ import '../models/task_model.dart';
 import '../services/task_service.dart';
 import '../widgets/floating_btn.dart';
 import 'add_task_screen.dart';
-import 'notification_service.dart';
 
 enum TaskFilter { all, completed, pending }
 
@@ -21,7 +20,6 @@ class HomeScreen extends StatefulWidget {
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
-
 }
 
 class _HomeScreenState extends State<HomeScreen> {
@@ -34,7 +32,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final TextEditingController _searchController = TextEditingController();
   String _searchText = "";
-
 
   @override
   Widget build(BuildContext context) {
@@ -116,93 +113,70 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 // Notification icon with circle background
                 Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.notifications_none,
+                      color: Colors.white,
+                      size: 25,
                     ),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.notifications_none,
-                        color: Colors.white,
-                        size: 25,
-                      ),
-                      onPressed: () {
-                        // Show modal bottom sheet
-                        showModalBottomSheet(
-                          context: context,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(20),
-                            ),
-                          ),
-                          backgroundColor: Colors.white,
-                          isScrollControlled: true,
-                          builder: (context) {
-                            return SizedBox(
-                              height: MediaQuery.of(context).size.height * 0.6,
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  children: [
-                                    Container(
-                                      width: 40,
-                                      height: 4,
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[300],
-                                        borderRadius: BorderRadius.circular(2),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    const Text(
-                                      "Notifications",
-                                      style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Expanded(
-                                      child: ListView(
-                                        children: [
-                                          // Example notification items
-                                          ListTile(
-                                            leading: const Icon(Icons.task),
-                                            title: const Text(
-                                                "Task 'Buy Groceries' is due soon"),
-                                            subtitle:
-                                                const Text("Today, 5:00 PM"),
-                                            trailing:
-                                                const Icon(Icons.chevron_right),
-                                            onTap: () {
-                                              // Optional: handle tap on notification
-                                              Navigator.pop(
-                                                  context); // close modal
-                                            },
-                                          ),
-                                          ListTile(
-                                            leading: const Icon(Icons.task),
-                                            title: const Text(
-                                                "Task 'Submit Report' is due tomorrow"),
-                                            subtitle:
-                                                const Text("Tomorrow, 9:00 AM"),
-                                            trailing:
-                                                const Icon(Icons.chevron_right),
-                                            onTap: () {
-                                              Navigator.pop(context);
-                                            },
-                                          ),
-                                          // Add more notifications dynamically from Firestore later
-                                        ],
-                                      ),
-                                    ),
-                                  ],
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(20)),
+                        ),
+                        backgroundColor: Colors.white,
+                        builder: (context) {
+                          return SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.6,
+                            child: Column(
+                              children: [
+                                // Drag handle
+                                Container(
+                                  width: 40,
+                                  height: 4,
+                                  margin: const EdgeInsets.only(top: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[300],
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    )),
+                                const SizedBox(height: 12),
+                                // Title
+                                const Text(
+                                  "Notifications",
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87),
+                                ),
+                                const SizedBox(height: 24),
+                                // Centered message
+                                Expanded(
+                                  child: Center(
+                                    child: Text(
+                                      "No Notifications Yet",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
           ),
@@ -345,7 +319,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
 
   void _showUpdateTaskBottomSheet(Task task) {
     final titleController = TextEditingController(text: task.title);
@@ -499,7 +472,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     await _taskService.updateTask(task);
 
                     // Schedule notification for updated task
-                    await _scheduleTaskNotification(task);
+                    // await _scheduleTaskNotification(task);
 
                     Navigator.pop(context);
                   },
@@ -532,11 +505,11 @@ class _HomeScreenState extends State<HomeScreen> {
           return Slidable(
             key: ValueKey(task.id),
 
-            // 👉 SWIPE LEFT
+            //  SWIPE LEFT
             endActionPane: ActionPane(
               motion: const StretchMotion(),
               children: [
-                // ✏️ UPDATE
+                // UPDATE
                 SlidableAction(
                   onPressed: (context) {
                     _showUpdateTaskBottomSheet(task);
@@ -547,7 +520,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   label: 'Update',
                 ),
 
-                // 🗑️ DELETE
+                // DELETE
                 SlidableAction(
                   onPressed: (context) async {
                     await _taskService.deleteTask(task.id);
@@ -782,7 +755,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ================= DRAWER =================
-  // ================= DRAWER =================
   Widget _buildDrawer() {
     return Drawer(
       backgroundColor: Colors.white,
@@ -939,116 +911,113 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ================= LOGOUT ITEM WITH SIMPLE MODERN DIALOG =================
   Widget _drawerLogout() {
     return GestureDetector(
-        onTap: () {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (ctx) => Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              backgroundColor: Colors.white,
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.logout,
-                      size: 50,
-                      color: Colors.redAccent,
+      onTap: () {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            backgroundColor: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.logout,
+                    size: 50,
+                    color: Colors.redAccent,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Logout",
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      "Logout",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Are you sure you want to logout?",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.black54,
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "Are you sure you want to logout?",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.black54,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        // ❌ Cancel
-                        Expanded(
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              side: BorderSide(color: Colors.grey.shade300),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      //Cancel
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            onPressed: () {
-                              Navigator.of(ctx).pop(); // close dialog
-                            },
-                            child: const Text(
-                              "Cancel",
-                              style: TextStyle(
-                                color: Colors.black87,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            side: BorderSide(color: Colors.grey.shade300),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () {
+                            Navigator.of(ctx).pop(); // close dialog
+                          },
+                          child: const Text(
+                            "Cancel",
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
+                      ),
 
-                        const SizedBox(width: 16),
+                      const SizedBox(width: 16),
 
-                        // ✅ Logout
-                        Expanded(
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.redAccent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                      // Logout
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.redAccent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            onPressed: () async {
-                              Navigator.of(ctx).pop(); // close dialog
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () async {
+                            Navigator.of(ctx).pop(); // close dialog
 
-                              await FirebaseAuth.instance.signOut();
+                            await FirebaseAuth.instance.signOut();
 
-                              // ✅ If you DO NOT use AuthGate, uncomment below:
-                              /*
-                          if (!context.mounted) return;
-                          Navigator.pushNamedAndRemoveUntil(
-                            context,
-                            '/login',
-                            (route) => false,
-                          );
-                          */
-                            },
-                            child: const Text(
-                              "Logout",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            // If you DO NOT use AuthGate, uncomment below:
+
+                            if (!context.mounted) return;
+                            Navigator.pushNamedAndRemoveUntil(
+                              context,
+                              '/welcome',
+                              (route) => false,
+                            );
+                          },
+                          child: const Text(
+                            "Logout",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          );
-        },
-
+          ),
+        );
+      },
 
       // ===== Drawer Logout Button UI =====
       child: Container(
@@ -1099,8 +1068,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-
 
   // ================= BOTTOM NAV =================
   Widget _buildBottomNav() {
@@ -1247,27 +1214,25 @@ class _HomeScreenState extends State<HomeScreen> {
     }).toList();
   }
 
-
   // ================= NOTIFICATION HELPERS =================
-  Future<void> _scheduleTaskNotification(Task task) async {
-    try {
-      await NotificationService.scheduleTaskReminder(
-        id: task.id.hashCode, // unique ID per task
-        title: task.title,
-        dueDate: task.dueDate,
-      );
-      print("Notification scheduled for ${task.dueDate}");
-    } catch (e) {
-      print("Error scheduling notification: $e");
-    }
-  }
+  // Future<void> _scheduleTaskNotification(Task task) async {
+  //   try {
+  //     await NotificationService.scheduleTaskReminder(
+  //       id: task.id.hashCode, // unique ID per task
+  //       title: task.title,
+  //       dueDate: task.dueDate,
+  //     );
+  //     print("Notification scheduled for ${task.dueDate}");
+  //   } catch (e) {
+  //     print("Error scheduling notification: $e");
+  //   }
+  // }
 
-
-  Future<void> _cancelTaskNotification(Task task) async {
-    try {
-      await NotificationService.cancel(task.id.hashCode);
-    } catch (e) {
-      print("Error cancelling notification: $e");
-    }
-  }
+  // Future<void> _cancelTaskNotification(Task task) async {
+  //   try {
+  //     await NotificationService.cancel(task.id.hashCode);
+  //   } catch (e) {
+  //     print("Error cancelling notification: $e");
+  //   }
+  // }
 }

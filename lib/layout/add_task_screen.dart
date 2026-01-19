@@ -48,7 +48,10 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
         ),
         centerTitle: true,
         elevation: 4,
-        shadowColor: Colors.purple.withOpacity(0.3), // soft shadow
+        shadowColor: Colors.purple.withOpacity(0.3),
+        // soft shadow
+        iconTheme: const IconThemeData(color: Colors.white),
+
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -59,7 +62,6 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
           ),
         ),
       ),
-
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -96,7 +98,8 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
           hintText: label,
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
@@ -112,11 +115,12 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       elevation: 3,
       borderRadius: BorderRadius.circular(16),
       child: DropdownButtonFormField<String>(
-        value: _selectedCategory,
+        initialValue: _selectedCategory,
         decoration: InputDecoration(
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
           hintText: "Select Category",
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
@@ -125,9 +129,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
         ),
         items: _categories
             .map((c) => DropdownMenuItem(
-          value: c,
-          child: Text(c, style: const TextStyle(fontSize: 16)),
-        ))
+                  value: c,
+                  child: Text(c, style: const TextStyle(fontSize: 16)),
+                ))
             .toList(),
         onChanged: (v) => setState(() => _selectedCategory = v),
       ),
@@ -155,8 +159,8 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
               selectedColor: p == "High"
                   ? Colors.red
                   : p == "Medium"
-                  ? const Color(0xFF7C3AED)
-                  : Colors.green,
+                      ? const Color(0xFF7C3AED)
+                      : Colors.green,
               backgroundColor: Colors.white,
               shadowColor: const Color(0xFF7C3AED).withOpacity(0.2),
               elevation: 2,
@@ -233,7 +237,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     final taskId = await _taskService.addTask(task);
 
     final reminderTime =
-    _selectedDateTime!.subtract(const Duration(minutes: 15));
+        _selectedDateTime!.subtract(const Duration(minutes: 15));
     if (reminderTime.isAfter(DateTime.now())) {
       await NotificationService.scheduleTaskReminder(
         id: taskId.hashCode,

@@ -8,11 +8,12 @@ import 'package:flutter_project_aub/layout/calendar_screen.dart';
 import 'package:flutter_project_aub/layout/setting_screen.dart';
 import 'package:flutter_project_aub/layout/welcome_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 import 'auth/auth_gate.dart';
 import 'layout/complete_profile_screen.dart';
 import 'layout/home_screen.dart';
 import 'layout/notification_service.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,12 +22,12 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // 1️⃣ Request notification permission (important for Android 13+)
+  // Request notification permission (important for Android 13+)
   if (await Permission.notification.isDenied) {
     await Permission.notification.request();
   }
 
-  // 2️⃣ Initialize notification service
+  // Initialize notification service
   await NotificationService.init();
 
   runApp(const MyApp());
@@ -53,7 +54,7 @@ class MyApp extends StatelessWidget {
         "/complete-profile": (context) => const CompleteProfileScreen(),
         '/setting': (context) => const SettingsScreen(),
         '/calendar': (context) => CalendarScreen(),
-        '/addTask' : (context) => AddTaskScreen(),
+        '/addTask': (context) => AddTaskScreen(),
       },
     );
   }

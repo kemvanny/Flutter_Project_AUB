@@ -279,7 +279,9 @@ class _TasksScreenState extends State<TasksScreen> {
         child: Text(
           value ?? label,
           style: TextStyle(
-            color: value == null ? Colors.purple[700] : Colors.white,
+            color: value == null
+                ? Colors.purple[700]
+                : const Color.fromARGB(255, 168, 80, 184),
             fontWeight: FontWeight.bold,
           ),
         ),

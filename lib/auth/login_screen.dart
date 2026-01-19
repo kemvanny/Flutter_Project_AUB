@@ -1,8 +1,9 @@
 import 'dart:math';
 import 'dart:ui';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -48,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen>
 
     try {
       final userCredential =
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
@@ -56,7 +57,8 @@ class _LoginScreenState extends State<LoginScreen>
       final uid = userCredential.user?.uid;
       if (uid == null) throw FirebaseAuthException(code: 'no-uid');
 
-      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
       if (!doc.exists) {
         await FirebaseFirestore.instance.collection('users').doc(uid).set({
@@ -68,14 +70,14 @@ class _LoginScreenState extends State<LoginScreen>
 
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, "/complete-profile");
-
     } on FirebaseAuthException catch (e) {
       debugPrint("AUTH ERROR CODE: ${e.code}");
       debugPrint("AUTH ERROR MESSAGE: ${e.message}");
 
       switch (e.code) {
         case 'user-not-found':
-          _showError("No account found with this email. Maybe use Google Sign-In?");
+          _showError(
+              "No account found with this email. Maybe use Google Sign-In?");
           break;
         case 'wrong-password':
           _showError("Incorrect password. Try resetting it if you forgot.");
@@ -95,7 +97,6 @@ class _LoginScreenState extends State<LoginScreen>
         default:
           _showError("Login failed: Incorrect Email or Password!!!");
       }
-
     } catch (e) {
       _showError("Something went wrong. Please try again.");
     } finally {
@@ -134,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen>
       builder: (_) {
         return AlertDialog(
           shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Text("Reset Password"),
           content: TextField(
             controller: resetEmailController,
@@ -207,11 +208,7 @@ class _LoginScreenState extends State<LoginScreen>
         return Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Color(0xFF1E1B4B),
-                Color(0xFF7C7AED),
-                Color(0xFFA5B4FC)
-              ],
+              colors: [Color(0xFF1E1B4B), Color(0xFF7C7AED), Color(0xFFA5B4FC)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -265,7 +262,7 @@ class _LoginScreenState extends State<LoginScreen>
             color: Colors.white.withOpacity(0.25),
             borderRadius: BorderRadius.circular(30),
             border:
-            Border.all(color: Colors.white.withOpacity(0.35), width: 1.2),
+                Border.all(color: Colors.white.withOpacity(0.35), width: 1.2),
           ),
           child: Form(
             key: _formKey,
@@ -273,14 +270,11 @@ class _LoginScreenState extends State<LoginScreen>
               children: [
                 Image.asset('assets/images/logo.png', height: 100),
                 const SizedBox(height: 30),
-
                 _input("Email", Icons.email_outlined,
                     controller: emailController),
                 const SizedBox(height: 18),
-
                 _input("Password", Icons.lock_outline,
                     isPassword: true, controller: passwordController),
-
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
@@ -291,23 +285,19 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
                 _loginButton(),
                 const SizedBox(height: 20),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     GestureDetector(
                         onTap: _signInWithGoogle,
-                        child: _socialButton(
-                            'assets/images/google.png')),
+                        child: _socialButton('assets/images/google.png')),
                     const SizedBox(width: 20),
                     _socialButton('assets/images/facebook.png'),
                   ],
                 ),
-
                 const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -315,8 +305,7 @@ class _LoginScreenState extends State<LoginScreen>
                     const Text("Don't have an account? ",
                         style: TextStyle(color: Colors.white)),
                     GestureDetector(
-                      onTap: () =>
-                          Navigator.pushNamed(context, "/register"),
+                      onTap: () => Navigator.pushNamed(context, "/register"),
                       child: const Text(
                         "Sign Up",
                         style: TextStyle(
@@ -342,8 +331,7 @@ class _LoginScreenState extends State<LoginScreen>
       validator: (value) {
         if (value == null || value.isEmpty) return "$hint is required";
         if (hint == "Email" &&
-            !RegExp(r'^[\w-]+@([\w-]+\.)+[a-zA-Z]{2,7}$')
-                .hasMatch(value)) {
+            !RegExp(r'^[\w-]+@([\w-]+\.)+[a-zA-Z]{2,7}$').hasMatch(value)) {
           return "Invalid email";
         }
         if (hint == "Password" && value.length < 6) {
@@ -356,14 +344,12 @@ class _LoginScreenState extends State<LoginScreen>
         prefixIcon: Icon(icon, color: Colors.white),
         suffixIcon: isPassword
             ? IconButton(
-          icon: Icon(
-              _obscurePassword
-                  ? Icons.visibility_off
-                  : Icons.visibility,
-              color: Colors.white),
-          onPressed: () =>
-              setState(() => _obscurePassword = !_obscurePassword),
-        )
+                icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.white),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
+              )
             : null,
         filled: true,
         fillColor: Colors.white.withOpacity(0.25),
