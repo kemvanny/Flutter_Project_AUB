@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 import '../widgets/ModernWowButton.dart';
@@ -22,7 +24,18 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   bool _loading = false;
   final picker = ImagePicker();
 
-  String? _gender; // New: gender variable ("male" or "female")
+  String? _gender; // gender variable ("male" or "female")
+
+  // ================= CLOUDINARY CONFIG =================
+  static const String cloudName = 'dlonqpu0r';
+  static const String uploadPreset = 'todo-list';
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    phoneController.dispose();
+    super.dispose();
+  }
 
   // ================= PICK IMAGE =================
   Future<void> _pickImage() async {
@@ -40,6 +53,44 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     }
   }
 
+  // ================= UPLOAD TO CLOUDINARY =================
+  Future<String?> _uploadToCloudinary(File imageFile) async {
+    try {
+      final url = Uri.parse(
+        'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
+      );
+
+      var request = http.MultipartRequest('POST', url);
+
+      // Add upload preset and folder
+      request.fields['upload_preset'] = uploadPreset;
+      request.fields['folder'] = 'profile';
+
+      // Add the image file
+      request.files.add(
+        await http.MultipartFile.fromPath('file', imageFile.path),
+      );
+
+      // Send request
+      var response = await request.send();
+      var responseData = await response.stream.toBytes();
+      var responseString = String.fromCharCodes(responseData);
+      var jsonResponse = json.decode(responseString);
+
+      if (response.statusCode == 200 && jsonResponse['secure_url'] != null) {
+        debugPrint(
+            "✅ Image uploaded successfully: ${jsonResponse['secure_url']}");
+        return jsonResponse['secure_url'];
+      } else {
+        debugPrint("❌ Cloudinary upload failed: ${jsonResponse['error']}");
+        return null;
+      }
+    } catch (e) {
+      debugPrint("❌ Cloudinary upload error: $e");
+      return null;
+    }
+  }
+
   // ================= SAVE PROFILE =================
   Future<void> _saveProfile() async {
     final name = nameController.text.trim();
@@ -49,6 +100,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       _showError("Name is required");
       return;
     }
+
     if (_gender == null) {
       _showError("Please select your gender");
       return;
@@ -60,72 +112,55 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
         _showError("User not logged in");
+        setState(() => _loading = false);
         return;
       }
 
       String? imageUrl;
+
+      // 🔹 Upload image to Cloudinary if selected
       if (_image != null) {
-        imageUrl = await _uploadProfileImage(_image!);
+        imageUrl = await _uploadToCloudinary(_image!);
+
+        // 🔴 Stop if upload failed
         if (imageUrl == null) {
+          _showError("Image upload failed. Please try again.");
           setState(() => _loading = false);
           return;
         }
       }
 
-      // Save all info to Firestore
+      // 🔹 Save profile data to Firestore with Cloudinary URL
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'fullName': name,
         'phone': phone,
         'gender': _gender,
-        'profileUrl': imageUrl ?? '',
+        'profileUrl': imageUrl, // Cloudinary URL or null
         'profileCompleted': true,
+        'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
       if (!mounted) return;
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile completed successfully!'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      // Navigate to home
       Navigator.pushReplacementNamed(context, "/home");
     } catch (e) {
-      _showError("Failed to save profile");
-      debugPrint("Save profile error: $e");
+      _showError("Failed to save profile: $e");
+      debugPrint("❌ Save profile error: $e");
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
-
-  Future<String?> _uploadProfileImage(File image) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        _showError("User not logged in");
-        return null;
-      }
-
-      // Reference in Firebase Storage
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('profiles/${user.uid}/profile.jpg');
-
-      // Upload file
-      final uploadTask = ref.putFile(image);
-      final snapshot = await uploadTask.whenComplete(() {});
-
-      // Check success
-      if (snapshot.state == TaskState.success) {
-        final url = await ref.getDownloadURL();
-        return url;
-      } else {
-        _showError("Upload failed: ${snapshot.state}");
-        return null;
-      }
-    } on FirebaseException catch (e) {
-      _showError("Upload failed: ${e.code}");
-      return null;
-    } catch (e) {
-      _showError("Failed to upload profile image");
-      return null;
-    }
-  }
-
 
   void _showError(String msg) {
     if (!mounted) return;
@@ -137,7 +172,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       ),
     );
   }
-
 
   // ================= BUILD UI =================
   @override
@@ -181,12 +215,15 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       backgroundImage: _image != null
                           ? FileImage(_image!) as ImageProvider
                           : (_gender == 'male'
-                          ? const AssetImage('assets/images/default_profile.png')
-                          : _gender == 'female'
-                          ? const AssetImage('assets/images/default_pf_girl.png')
-                          : null),
+                              ? const AssetImage(
+                                  'assets/images/default_profile.png')
+                              : _gender == 'female'
+                                  ? const AssetImage(
+                                      'assets/images/default_pf_girl.png')
+                                  : null),
                       child: _image == null && _gender == null
-                          ? const Icon(Icons.person, size: 68, color: Colors.white)
+                          ? const Icon(Icons.person,
+                              size: 68, color: Colors.white)
                           : null,
                     ),
                     Container(
@@ -198,7 +235,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                         border: Border.all(color: Colors.white, width: 2),
                       ),
                       padding: const EdgeInsets.all(8),
-                      child: const Icon(Icons.camera_alt, size: 22, color: Colors.white),
+                      child: const Icon(Icons.camera_alt,
+                          size: 22, color: Colors.white),
                     ),
                   ],
                 ),
@@ -211,11 +249,11 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
                       color: Colors.black12,
                       blurRadius: 15,
-                      offset: const Offset(0, 8),
+                      offset: Offset(0, 8),
                     )
                   ],
                 ),
@@ -235,9 +273,10 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // ================= GENDER SELECT (moved here) =================
+                    // ================= GENDER SELECT =================
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(18),
@@ -250,7 +289,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                         underline: const SizedBox(),
                         items: const [
                           DropdownMenuItem(value: 'male', child: Text("Male")),
-                          DropdownMenuItem(value: 'female', child: Text("Female")),
+                          DropdownMenuItem(
+                              value: 'female', child: Text("Female")),
                         ],
                         onChanged: (val) => setState(() => _gender = val),
                       ),
@@ -260,6 +300,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
               ),
               const SizedBox(height: 40),
 
+              // ================= SAVE BUTTON =================
               ModernWowButton(
                 text: "Continue",
                 loading: _loading,
@@ -271,7 +312,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       ),
     );
   }
-
 
   Widget _buildTextField({
     required TextEditingController controller,
@@ -289,7 +329,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         filled: true,
         fillColor: Colors.purple[50],
         contentPadding:
-        const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+            const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide.none,

@@ -1,9 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 import '../widgets/ModernWowButton.dart';
@@ -22,6 +23,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool loading = false;
   File? _imageFile;
 
+  // ================= CLOUDINARY CONFIG =================
+  final String cloudName = 'dlonqpu0r'; // Replace with your cloud name
+  final String uploadPreset = 'todo-list'; // Replace with your upload preset
+
   @override
   void dispose() {
     nameController.dispose();
@@ -37,23 +42,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  // ================= UPLOAD IMAGE =================
-  Future<String?> _uploadProfileImage(File file) async {
+  // ================= UPLOAD IMAGE TO CLOUDINARY =================
+  Future<String?> _uploadToCloudinary(File imageFile) async {
     try {
-      final ref =
-          FirebaseStorage.instance.ref().child('profiles/$uid/profile.jpg');
+      final url =
+          Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
 
-      final uploadTask = await ref.putFile(file);
+      var request = http.MultipartRequest('POST', url);
 
-      if (uploadTask.state == TaskState.success) {
-        return await ref.getDownloadURL();
-      }
+      // Add upload preset
+      request.fields['upload_preset'] = uploadPreset;
 
-      return null;
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to upload image: $e')),
+      // Add the image file
+      request.files.add(
+        await http.MultipartFile.fromPath('file', imageFile.path),
       );
+
+      // Send request
+      var response = await request.send();
+      var responseData = await response.stream.toBytes();
+      var responseString = String.fromCharCodes(responseData);
+      var jsonResponse = json.decode(responseString);
+
+      if (response.statusCode == 200) {
+        // Return the secure URL of uploaded image
+        return jsonResponse['secure_url'];
+      } else {
+        print('Upload failed: ${jsonResponse['error']['message']}');
+        return null;
+      }
+    } catch (e) {
+      print('Error uploading to Cloudinary: $e');
       return null;
     }
   }
@@ -187,16 +206,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => loading = true);
     try {
       String? imageUrl;
+
+      // If user picked a new image, upload it to Cloudinary
       if (_imageFile != null) {
-        imageUrl = await _uploadProfileImage(_imageFile!);
+        imageUrl = await _uploadToCloudinary(_imageFile!);
+        if (imageUrl == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to upload image')));
+          setState(() => loading = false);
+          return;
+        }
       }
 
       final userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
       final updateData = <String, dynamic>{};
-      if (nameController.text.isNotEmpty)
+
+      if (nameController.text.isNotEmpty) {
         updateData['fullName'] = nameController.text;
-      if (imageUrl != null) updateData['profileUrl'] = imageUrl;
-      if (updateData.isNotEmpty) await userDoc.update(updateData);
+      }
+
+      // Save Cloudinary URL to Firestore
+      if (imageUrl != null) {
+        updateData['profileUrl'] = imageUrl;
+      }
+
+      if (updateData.isNotEmpty) {
+        await userDoc.update(updateData);
+      }
 
       // Update email if changed
       if (emailController.text.isNotEmpty &&
@@ -207,6 +243,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profile updated successfully')));
+
+      // Clear the local image file after successful upload
+      setState(() => _imageFile = null);
     } catch (e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -273,10 +312,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   title: const Text("Settings"),
-      //   backgroundColor: const Color(0xFF7C3AED),
-      // ),
       body: StreamBuilder<DocumentSnapshot>(
         stream:
             FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
@@ -319,17 +354,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               backgroundImage: _imageFile != null
                                   ? FileImage(_imageFile!) // user picked image
                                   : (data['profileUrl'] != null &&
-                                              data['profileUrl'].isNotEmpty
-                                          ? NetworkImage(data[
-                                              'profileUrl']) // uploaded image
-                                          : (data['gender'] == 'male'
+                                          data['profileUrl'].isNotEmpty
+                                      ? NetworkImage(data[
+                                          'profileUrl']) // Cloudinary uploaded image
+                                      : (data['gender'] == 'male'
+                                          ? const AssetImage(
+                                              'assets/images/default_profile.png')
+                                          : data['gender'] == 'female'
                                               ? const AssetImage(
-                                                  'assets/images/default_profile.png')
-                                              : data['gender'] == 'female'
-                                                  ? const AssetImage(
-                                                      'assets/images/default_pf_girl.png')
-                                                  : null))
-                                      as ImageProvider?, // fallback to gender or null
+                                                  'assets/images/default_pf_girl.png')
+                                              : null)) as ImageProvider?,
                               child: _imageFile == null &&
                                       (data['profileUrl'] == null ||
                                           data['profileUrl'].isEmpty) &&

@@ -40,14 +40,14 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.7.0"))
     implementation("com.google.firebase:firebase-analytics")
 
-    // Core library desugaring for Java 8+ APIs used by plugins
+    // Core library desugaring for Java 8+ APIs
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
-}
 
-dependencies {
+    // UI libraries
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.11.0")
 }
+
 
 
 flutter {

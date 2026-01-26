@@ -1,22 +1,22 @@
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
-import 'package:timezone/timezone.dart' as tz;
-import 'package:timezone/data/latest.dart' as tzData;
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:timezone/data/latest.dart' as tzData;
+import 'package:timezone/timezone.dart' as tz;
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
-  FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
 
   static Future<void> init() async {
     // Initialize timezone
     tzData.initializeTimeZones();
 
     const AndroidInitializationSettings androidSettings =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/ic_launcher');
 
     const DarwinInitializationSettings iOSSettings =
-    DarwinInitializationSettings(
+        DarwinInitializationSettings(
       requestSoundPermission: true,
       requestBadgePermission: true,
       requestAlertPermission: true,
@@ -68,7 +68,7 @@ class NotificationService {
         ),
         androidAllowWhileIdle: true,
         uiLocalNotificationDateInterpretation:
-        UILocalNotificationDateInterpretation.absoluteTime,
+            UILocalNotificationDateInterpretation.absoluteTime,
       );
     } catch (e) {
       debugPrint("Error scheduling notification: $e");
