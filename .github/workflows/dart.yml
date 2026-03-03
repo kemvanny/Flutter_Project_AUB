@@ -1,21 +1,16 @@
-name: PLANME
-
+name: build-ios
 on:
   workflow_dispatch:
-
 permissions:
   contents: write
-
 jobs:
   build-ios:
     name: 🎉 iOS Build
     runs-on: macos-latest
     env:
-      APP_NAME: "PLANME"  # Set the app name here
-
+      APP_NAME: "To do List"
     steps:
       - uses: actions/checkout@v3
-
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
@@ -23,23 +18,21 @@ jobs:
           
       - run: flutter pub get
       
-
       - run: pod repo update
         working-directory: ios
 
-      - run: flutter build ios --release --no-codesign
+      - run: pod install
+        working-directory: ios
 
+      - run: flutter build ios --release --no-codesign
       - run: mkdir Payload
         working-directory: build/ios/iphoneos
-
       - run: mv Runner.app/ Payload
         working-directory: build/ios/iphoneos
-
-      - name: Zip output with dynamic name
+      - name: Zip output
         run: zip -qq -r -9 "${{ env.APP_NAME }}.ipa" Payload
         working-directory: build/ios/iphoneos
-
-      - name: Upload binaries to release
+      - name: Upload to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
